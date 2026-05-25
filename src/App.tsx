@@ -158,8 +158,16 @@ const stripBracketedPasteControls = (data: string) =>
     .replaceAll('[200~', '')
     .replaceAll('[201~', '')
 
+const commandLinesFromInput = (data: string) =>
+  data
+    .split(/\r\n|\r|\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
 const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
   const cleanData = stripBracketedPasteControls(data)
+  const commandLines = commandLinesFromInput(cleanData)
+  const isCommandBlockInput = commandLines.length > 1
   let buffer = terminal.inputBuffer ?? ''
   let lastCommand = terminal.lastCommand
   let command = terminal.command
@@ -172,6 +180,16 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
       inputBuffer: pastedCommand,
       lastCommand: pastedCommand,
       command: pastedCommand,
+    }
+  }
+
+  if (isCommandBlockInput) {
+    const commandBlock = commandLines.join('\n')
+    return {
+      ...terminal,
+      inputBuffer: '',
+      lastCommand: commandBlock,
+      command: commandBlock,
     }
   }
 
@@ -1402,21 +1420,12 @@ function TerminalPane({
   const fitRef = useRef<FitAddon | null>(null)
   const onInputRef = useRef(onInput)
   const onResizeRef = useRef(onResize)
-  const rememberCommandRef = useRef((command: string) => onInput(`${pastedCommandPrefix}${encodeURIComponent(command)}${pastedCommandSuffix}`))
   const initialTranscriptRef = useRef(terminal.transcript)
-  const lastCommandRef = useRef(terminal.lastCommand)
-  const pendingMultilineRecallRef = useRef<string | null>(null)
 
   useEffect(() => {
     onInputRef.current = onInput
     onResizeRef.current = onResize
-    rememberCommandRef.current = (command: string) =>
-      onInput(`${pastedCommandPrefix}${encodeURIComponent(command)}${pastedCommandSuffix}`)
   }, [onInput, onResize])
-
-  useEffect(() => {
-    lastCommandRef.current = terminal.lastCommand
-  }, [terminal.lastCommand])
 
   useEffect(() => {
     initialTranscriptRef.current = terminal.transcript
@@ -1452,60 +1461,9 @@ function TerminalPane({
     if (initialTranscriptRef.current) {
       term.write(initialTranscriptRef.current)
     }
-    const recallLastCommand = () => {
-      const command = stripBracketedPasteControls(lastCommandRef.current ?? '')
-      if (!command?.trim()) return
-      lastCommandRef.current = command
-      rememberCommandRef.current(command)
-      if (/\r|\n/.test(command)) {
-        pendingMultilineRecallRef.current = command
-        window.terminalHost?.write({ id: terminal.id, data: '\u0015' })
-        term.write(command.replace(/\r?\n/g, '\r\n'))
-        return
-      }
-      pendingMultilineRecallRef.current = null
-      onInputRef.current(`\u0015${command}`)
-    }
     term.onData((data) => {
       const cleanData = stripBracketedPasteControls(data)
-      if (cleanData === '\u001b[A' || cleanData === '\u001bOA') {
-        recallLastCommand()
-        return
-      }
-      if (pendingMultilineRecallRef.current) {
-        if (cleanData === '\r') {
-          const command = pendingMultilineRecallRef.current
-          pendingMultilineRecallRef.current = null
-          term.write('\r\n')
-          window.terminalHost?.write({
-            id: terminal.id,
-            data: `${command.replace(/\r?\n/g, '\r')}\r`,
-          })
-          return
-        }
-        if (cleanData === '\u0003') {
-          pendingMultilineRecallRef.current = null
-        }
-      }
       if (cleanData) onInputRef.current(cleanData)
-    })
-    term.attachCustomKeyEventHandler((event) => {
-      const isPaste =
-        (event.metaKey && event.key.toLowerCase() === 'v') ||
-        (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'v')
-      if (event.type === 'keydown' && isPaste) {
-        const text = window.terminalHost?.readClipboardText() ?? ''
-        if (text) {
-          rememberCommandRef.current(text)
-          onInputRef.current(text.replace(/\r?\n/g, '\r'))
-        }
-        return false
-      }
-      if (event.type === 'keydown' && event.key === 'ArrowUp') {
-        recallLastCommand()
-        return false
-      }
-      return true
     })
     termRef.current = term
     fitRef.current = fit
