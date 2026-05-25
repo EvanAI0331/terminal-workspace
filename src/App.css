@@ -92,7 +92,8 @@
 .brandPathInput {
   display: block;
   margin-top: 3px;
-  color: var(--muted);
+  border-color: #ff6b4a;
+  color: #fff;
   font-size: 12px;
 }
 
