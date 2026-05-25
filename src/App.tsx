@@ -1411,19 +1411,15 @@ function TerminalPane({
         return false
       }
       if (event.type === 'keydown' && event.key === 'ArrowUp') {
-        const command = lastCommandRef.current?.trim()
-        if (command) {
-          const hasMultipleLines = /\r|\n/.test(command)
+        const command = lastCommandRef.current
+        if (command?.trim()) {
+          const pastePayload = command.replace(/\r?\n/g, '\r')
+          lastCommandRef.current = command
           rememberCommandRef.current(command)
-          if (hasMultipleLines) {
-            const pastePayload = command.replace(/\r?\n/g, '\r')
-            window.terminalHost?.write({
-              id: terminal.id,
-              data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
-            })
-          } else {
-            onInputRef.current(`\u0015${command}`)
-          }
+          window.terminalHost?.write({
+            id: terminal.id,
+            data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
+          })
         }
         return false
       }
