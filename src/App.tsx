@@ -913,7 +913,7 @@ function App() {
             />
           ))}
         </div>
-      ) : <PanelEmpty title="未发现笔记" text="深度扫描内未发现根目录 markdown 或 docs 下的 markdown 文件。" />
+      ) : <PanelEmpty title="未发现笔记" text="深度扫描内未发现 markdown 文件。" />
     }
 
     return null

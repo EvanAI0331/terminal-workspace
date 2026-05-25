@@ -512,10 +512,7 @@ function detectNotes(index) {
   return index.files
     .filter((filePath) => {
       const name = path.basename(filePath);
-      const relativePath = safeRelative(index.root, filePath);
-      const isRootMarkdown = !relativePath.includes("/") && /\.mdx?$/i.test(name);
-      const isDocsMarkdown = /^docs\/.+\.mdx?$/i.test(relativePath);
-      return isRootMarkdown || isDocsMarkdown;
+      return /\.mdx?$/i.test(name);
     })
     .slice(0, 80)
     .map((filePath) => {
