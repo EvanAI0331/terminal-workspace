@@ -143,8 +143,6 @@ const appendTranscript = (value: string | undefined, data: string) =>
 
 const pastedCommandPrefix = '\u001b]1337;TerminalWorkspaceLastCommand='
 const pastedCommandSuffix = '\u0007'
-const bracketedPasteStart = '\u001b[200~'
-const bracketedPasteEnd = '\u001b[201~'
 
 const isRememberCommandEvent = (data: string) =>
   data.startsWith(pastedCommandPrefix) && data.endsWith(pastedCommandSuffix)
@@ -1351,6 +1349,7 @@ function TerminalPane({
   const rememberCommandRef = useRef((command: string) => onInput(`${pastedCommandPrefix}${encodeURIComponent(command)}${pastedCommandSuffix}`))
   const initialTranscriptRef = useRef(terminal.transcript)
   const lastCommandRef = useRef(terminal.lastCommand)
+  const pendingMultilineRecallRef = useRef<string | null>(null)
 
   useEffect(() => {
     onInputRef.current = onInput
@@ -1400,18 +1399,36 @@ function TerminalPane({
     const recallLastCommand = () => {
       const command = lastCommandRef.current
       if (!command?.trim()) return
-      const pastePayload = command.replace(/\r?\n/g, '\r')
       lastCommandRef.current = command
       rememberCommandRef.current(command)
-      window.terminalHost?.write({
-        id: terminal.id,
-        data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
-      })
+      if (/\r|\n/.test(command)) {
+        pendingMultilineRecallRef.current = command
+        window.terminalHost?.write({ id: terminal.id, data: '\u0015' })
+        term.write(command.replace(/\r?\n/g, '\r\n'))
+        return
+      }
+      pendingMultilineRecallRef.current = null
+      onInputRef.current(`\u0015${command}`)
     }
     term.onData((data) => {
       if (data === '\u001b[A' || data === '\u001bOA') {
         recallLastCommand()
         return
+      }
+      if (pendingMultilineRecallRef.current) {
+        if (data === '\r') {
+          const command = pendingMultilineRecallRef.current
+          pendingMultilineRecallRef.current = null
+          term.write('\r\n')
+          window.terminalHost?.write({
+            id: terminal.id,
+            data: `${command.replace(/\r?\n/g, '\r')}\r`,
+          })
+          return
+        }
+        if (data === '\u0003') {
+          pendingMultilineRecallRef.current = null
+        }
       }
       onInputRef.current(data)
     })
