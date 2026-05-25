@@ -1422,7 +1422,7 @@ function TerminalPane({
       theme: {
         background: '#0b0c0f',
         foreground: '#d8dee9',
-        cursor: '#f0b35a',
+        cursor: '#00e5ff',
         selectionBackground: '#3d4658',
         black: '#121417',
         red: '#f07178',
