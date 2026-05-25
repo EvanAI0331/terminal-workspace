@@ -1397,7 +1397,24 @@ function TerminalPane({
     if (initialTranscriptRef.current) {
       term.write(initialTranscriptRef.current)
     }
-    term.onData((data) => onInputRef.current(data))
+    const recallLastCommand = () => {
+      const command = lastCommandRef.current
+      if (!command?.trim()) return
+      const pastePayload = command.replace(/\r?\n/g, '\r')
+      lastCommandRef.current = command
+      rememberCommandRef.current(command)
+      window.terminalHost?.write({
+        id: terminal.id,
+        data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
+      })
+    }
+    term.onData((data) => {
+      if (data === '\u001b[A' || data === '\u001bOA') {
+        recallLastCommand()
+        return
+      }
+      onInputRef.current(data)
+    })
     term.attachCustomKeyEventHandler((event) => {
       const isPaste =
         (event.metaKey && event.key.toLowerCase() === 'v') ||
@@ -1411,16 +1428,7 @@ function TerminalPane({
         return false
       }
       if (event.type === 'keydown' && event.key === 'ArrowUp') {
-        const command = lastCommandRef.current
-        if (command?.trim()) {
-          const pastePayload = command.replace(/\r?\n/g, '\r')
-          lastCommandRef.current = command
-          rememberCommandRef.current(command)
-          window.terminalHost?.write({
-            id: terminal.id,
-            data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
-          })
-        }
+        recallLastCommand()
         return false
       }
       return true
