@@ -83,7 +83,7 @@
 }
 
 .brandNameInput {
-  color: var(--text);
+  color: #35a7ff;
   font-size: 16px;
   font-weight: 750;
   line-height: 1.15;
@@ -92,7 +92,7 @@
 .brandPathInput {
   display: block;
   margin-top: 3px;
-  border-color: #ff6b4a;
+  border-color: #8fd3ff;
   color: #fff;
   font-size: 12px;
 }
