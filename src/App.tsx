@@ -477,15 +477,6 @@ function App() {
                 },
               }
             })
-            if (terminal.id === activeTerminalId) {
-              setProjects((current) =>
-                current.map((project) =>
-                  project.id === terminal.projectId && project.path !== cwd
-                    ? { ...project, path: cwd }
-                    : project,
-                ),
-              )
-            }
           })
           .catch((error) => {
             const message = error instanceof Error ? error.message : String(error)
