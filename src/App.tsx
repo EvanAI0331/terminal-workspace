@@ -141,10 +141,29 @@ const maxTranscriptLength = 40000
 const appendTranscript = (value: string | undefined, data: string) =>
   `${value ?? ''}${data}`.slice(-maxTranscriptLength)
 
+const pastedCommandPrefix = '\u001b]1337;TerminalWorkspaceLastCommand='
+const pastedCommandSuffix = '\u0007'
+const bracketedPasteStart = '\u001b[200~'
+const bracketedPasteEnd = '\u001b[201~'
+
+const isRememberCommandEvent = (data: string) =>
+  data.startsWith(pastedCommandPrefix) && data.endsWith(pastedCommandSuffix)
+
 const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
   let buffer = terminal.inputBuffer ?? ''
   let lastCommand = terminal.lastCommand
   let command = terminal.command
+
+  if (isRememberCommandEvent(data)) {
+    const encoded = data.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
+    const pastedCommand = decodeURIComponent(encoded)
+    return {
+      ...terminal,
+      inputBuffer: pastedCommand,
+      lastCommand: pastedCommand,
+      command: pastedCommand,
+    }
+  }
 
   for (const char of data) {
     if (char === '\r' || char === '\n') {
@@ -817,6 +836,7 @@ function App() {
             terminal={terminal}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
+              const shouldWriteToPty = !isRememberCommandEvent(data)
               setTerminals((current) => {
                 const currentTerminal = current[terminal.id]
                 if (!currentTerminal) return current
@@ -825,7 +845,7 @@ function App() {
                   [terminal.id]: updateInputState(currentTerminal, data),
                 }
               })
-              window.terminalHost?.write({ id: terminal.id, data })
+              if (shouldWriteToPty) window.terminalHost?.write({ id: terminal.id, data })
             }}
           />
         </TerminalCard>
@@ -1314,12 +1334,15 @@ function TerminalPane({
   const fitRef = useRef<FitAddon | null>(null)
   const onInputRef = useRef(onInput)
   const onResizeRef = useRef(onResize)
+  const rememberCommandRef = useRef((command: string) => onInput(`${pastedCommandPrefix}${encodeURIComponent(command)}${pastedCommandSuffix}`))
   const initialTranscriptRef = useRef(terminal.transcript)
   const lastCommandRef = useRef(terminal.lastCommand)
 
   useEffect(() => {
     onInputRef.current = onInput
     onResizeRef.current = onResize
+    rememberCommandRef.current = (command: string) =>
+      onInput(`${pastedCommandPrefix}${encodeURIComponent(command)}${pastedCommandSuffix}`)
   }, [onInput, onResize])
 
   useEffect(() => {
@@ -1367,12 +1390,27 @@ function TerminalPane({
         (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'v')
       if (event.type === 'keydown' && isPaste) {
         const text = window.terminalHost?.readClipboardText() ?? ''
-        if (text) onInputRef.current(text.replace(/\r?\n/g, '\r'))
+        if (text) {
+          rememberCommandRef.current(text)
+          onInputRef.current(text.replace(/\r?\n/g, '\r'))
+        }
         return false
       }
       if (event.type === 'keydown' && event.key === 'ArrowUp') {
         const command = lastCommandRef.current?.trim()
-        if (command) onInputRef.current(`\u0015${command}`)
+        if (command) {
+          const hasMultipleLines = /\r|\n/.test(command)
+          rememberCommandRef.current(command)
+          if (hasMultipleLines) {
+            const pastePayload = command.replace(/\r?\n/g, '\r')
+            window.terminalHost?.write({
+              id: terminal.id,
+              data: `\u0015${bracketedPasteStart}${pastePayload}${bracketedPasteEnd}`,
+            })
+          } else {
+            onInputRef.current(`\u0015${command}`)
+          }
+        }
         return false
       }
       return true
