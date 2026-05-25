@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("terminalHost", {
   workspace: () => ipcRenderer.invoke("app:workspace"),
   loadState: () => ipcRenderer.invoke("app:state-load"),
   saveState: (state) => ipcRenderer.invoke("app:state-save", state),
+  saveStateSync: (state) => ipcRenderer.sendSync("app:state-save-sync", state),
   inspectProject: (request) => ipcRenderer.invoke("project:inspect", request),
   readClipboardText: () => clipboard.readText(),
   onData: (callback) => {

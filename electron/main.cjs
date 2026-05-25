@@ -215,6 +215,13 @@ ipcMain.handle("app:state-save", (_event, state) => ({
   path: writeWorkspaceState(state),
 }));
 
+ipcMain.on("app:state-save-sync", (event, state) => {
+  event.returnValue = {
+    ok: true,
+    path: writeWorkspaceState(state),
+  };
+});
+
 function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }

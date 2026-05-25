@@ -110,6 +110,7 @@ type TerminalHost = {
   workspace: () => Promise<{ cwd: string; shell: string }>
   loadState: () => Promise<{ state: PersistedWorkspaceState | null; path: string }>
   saveState: (state: PersistedWorkspaceState) => Promise<{ ok: boolean; path: string }>
+  saveStateSync?: (state: PersistedWorkspaceState) => { ok: boolean; path: string }
   inspectProject: (request: { cwd: string }) => Promise<ProjectInspection>
   readClipboardText: () => string
   onData: (callback: (payload: { id: string; data: string }) => void) => () => void
@@ -143,18 +144,28 @@ const appendTranscript = (value: string | undefined, data: string) =>
 
 const pastedCommandPrefix = '\u001b]1337;TerminalWorkspaceLastCommand='
 const pastedCommandSuffix = '\u0007'
+const bracketedPasteStart = '\u001b[200~'
+const bracketedPasteEnd = '\u001b[201~'
 
 const isRememberCommandEvent = (data: string) =>
   data.startsWith(pastedCommandPrefix) && data.endsWith(pastedCommandSuffix)
 
+const stripBracketedPasteControls = (data: string) =>
+  data
+    .replaceAll(bracketedPasteStart, '')
+    .replaceAll(bracketedPasteEnd, '')
+    .replaceAll('[200~', '')
+    .replaceAll('[201~', '')
+
 const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
+  const cleanData = stripBracketedPasteControls(data)
   let buffer = terminal.inputBuffer ?? ''
   let lastCommand = terminal.lastCommand
   let command = terminal.command
 
-  if (isRememberCommandEvent(data)) {
-    const encoded = data.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
-    const pastedCommand = decodeURIComponent(encoded)
+  if (isRememberCommandEvent(cleanData)) {
+    const encoded = cleanData.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
+    const pastedCommand = stripBracketedPasteControls(decodeURIComponent(encoded))
     return {
       ...terminal,
       inputBuffer: pastedCommand,
@@ -163,7 +174,7 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
     }
   }
 
-  for (const char of data) {
+  for (const char of cleanData) {
     if (char === '\r' || char === '\n') {
       const trimmed = buffer.trim()
       if (trimmed) {
@@ -249,6 +260,7 @@ function App() {
   const [isInspecting, setIsInspecting] = useState(false)
   const [isStateLoaded, setIsStateLoaded] = useState(false)
   const [hasPersistedState, setHasPersistedState] = useState(false)
+  const persistedStateRef = useRef<PersistedWorkspaceState | null>(null)
 
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0]
   const activeTerminals = useMemo(
@@ -264,6 +276,42 @@ function App() {
     .filter((terminal) => terminal.projectId === activeProject.id)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .slice(0, 8)
+  const persistedState = useMemo<PersistedWorkspaceState>(
+    () => ({
+      version: 1,
+      projects,
+      terminals: compactTerminalsForSave(terminals),
+      activeProjectId,
+      activeTerminalId,
+      expandedProjectIds,
+      expandedProbeProjectIds,
+      sidebarPanel,
+      detailTab,
+      viewMode,
+      savedAt: 0,
+    }),
+    [
+      activeProjectId,
+      activeTerminalId,
+      detailTab,
+      expandedProbeProjectIds,
+      expandedProjectIds,
+      projects,
+      sidebarPanel,
+      terminals,
+      viewMode,
+    ],
+  )
+
+  useEffect(() => {
+    persistedStateRef.current = persistedState
+  }, [persistedState])
+
+  const saveStateImmediately = useCallback((overrides: Partial<PersistedWorkspaceState>) => {
+    const state = persistedStateRef.current
+    if (!state || !window.terminalHost?.saveStateSync) return
+    window.terminalHost.saveStateSync({ ...state, ...overrides, savedAt: Date.now() })
+  }, [])
 
   useEffect(() => {
     if (!window.terminalHost) {
@@ -366,37 +414,32 @@ function App() {
   useEffect(() => {
     if (!isStateLoaded || !window.terminalHost) return
     const timer = window.setTimeout(() => {
-      const state: PersistedWorkspaceState = {
-        version: 1,
-        projects,
-        terminals: compactTerminalsForSave(terminals),
-        activeProjectId,
-        activeTerminalId,
-        expandedProjectIds,
-        expandedProbeProjectIds,
-        sidebarPanel,
-        detailTab,
-        viewMode,
-        savedAt: Date.now(),
-      }
-      window.terminalHost?.saveState(state).catch((error) => {
+      window.terminalHost?.saveState({ ...persistedState, savedAt: Date.now() }).catch((error) => {
         const message = error instanceof Error ? error.message : String(error)
         setNotice(`保存工作区失败：${message}`)
       })
     }, 350)
     return () => window.clearTimeout(timer)
-  }, [
-    activeProjectId,
-    activeTerminalId,
-    detailTab,
-    expandedProbeProjectIds,
-    expandedProjectIds,
-    isStateLoaded,
-    projects,
-    sidebarPanel,
-    terminals,
-    viewMode,
-  ])
+  }, [isStateLoaded, persistedState])
+
+  useEffect(() => {
+    const flushState = () => {
+      const state = persistedStateRef.current
+      if (!state || !window.terminalHost?.saveStateSync) return
+      window.terminalHost.saveStateSync({ ...state, savedAt: Date.now() })
+    }
+    const flushWhenHidden = () => {
+      if (document.visibilityState === 'hidden') flushState()
+    }
+    window.addEventListener('beforeunload', flushState)
+    window.addEventListener('pagehide', flushState)
+    document.addEventListener('visibilitychange', flushWhenHidden)
+    return () => {
+      window.removeEventListener('beforeunload', flushState)
+      window.removeEventListener('pagehide', flushState)
+      document.removeEventListener('visibilitychange', flushWhenHidden)
+    }
+  }, [])
 
   useEffect(() => {
     const timer = window.setInterval(() => setClock((value) => value + 1), 1000)
@@ -733,15 +776,17 @@ function App() {
   }
 
   const renameProject = (id: string, name: string) => {
-    setProjects((current) =>
-      current.map((project) => (project.id === id ? { ...project, name } : project)),
-    )
+    const nextProjects = projects.map((project) => (project.id === id ? { ...project, name } : project))
+    setProjects(nextProjects)
+    saveStateImmediately({ projects: nextProjects })
   }
 
   const renameProjectPath = (id: string, nextPath: string) => {
-    setProjects((current) =>
-      current.map((project) => (project.id === id ? { ...project, path: nextPath } : project)),
+    const nextProjects = projects.map((project) =>
+      project.id === id ? { ...project, path: nextPath } : project,
     )
+    setProjects(nextProjects)
+    saveStateImmediately({ projects: nextProjects })
   }
 
   const renameTerminal = (id: string, name: string) => {
@@ -780,13 +825,11 @@ function App() {
         ? nextProjects[0]
         : projects.find((item) => item.id === activeProject.id) ?? nextProjects[0]
 
-    setTerminals((current) => {
-      const next = { ...current }
-      for (const terminalId of project.terminalIds) {
-        delete next[terminalId]
-      }
-      return next
-    })
+    const nextTerminals = { ...terminals }
+    for (const terminalId of project.terminalIds) {
+      delete nextTerminals[terminalId]
+    }
+    setTerminals(nextTerminals)
     setProjects(nextProjects)
     setExpandedProjectIds((current) =>
       current.filter((projectId) => projectId !== project.id && nextProjects.some((item) => item.id === projectId)),
@@ -795,6 +838,17 @@ function App() {
     setActiveProjectId(nextActiveProject.id)
     setActiveTerminalId(nextActiveProject.terminalIds[0] ?? null)
     setSidebarPanel('terminals')
+    saveStateImmediately({
+      projects: nextProjects,
+      terminals: compactTerminalsForSave(nextTerminals),
+      activeProjectId: nextActiveProject.id,
+      activeTerminalId: nextActiveProject.terminalIds[0] ?? null,
+      expandedProjectIds: expandedProjectIds.filter((projectId) =>
+        projectId !== project.id && nextProjects.some((item) => item.id === projectId),
+      ),
+      expandedProbeProjectIds: expandedProbeProjectIds.filter((projectId) => projectId !== project.id),
+      sidebarPanel: 'terminals',
+    })
     setNotice(`已删除项目：${project.name}`)
   }
 
@@ -845,16 +899,17 @@ function App() {
             terminal={terminal}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
-              const shouldWriteToPty = !isRememberCommandEvent(data)
+              const cleanData = stripBracketedPasteControls(data)
+              const shouldWriteToPty = !isRememberCommandEvent(cleanData)
               setTerminals((current) => {
                 const currentTerminal = current[terminal.id]
                 if (!currentTerminal) return current
                 return {
                   ...current,
-                  [terminal.id]: updateInputState(currentTerminal, data),
+                  [terminal.id]: updateInputState(currentTerminal, cleanData),
                 }
               })
-              if (shouldWriteToPty) window.terminalHost?.write({ id: terminal.id, data })
+              if (shouldWriteToPty && cleanData) window.terminalHost?.write({ id: terminal.id, data: cleanData })
             }}
           />
         </TerminalCard>
@@ -1397,7 +1452,7 @@ function TerminalPane({
       term.write(initialTranscriptRef.current)
     }
     const recallLastCommand = () => {
-      const command = lastCommandRef.current
+      const command = stripBracketedPasteControls(lastCommandRef.current ?? '')
       if (!command?.trim()) return
       lastCommandRef.current = command
       rememberCommandRef.current(command)
@@ -1411,12 +1466,13 @@ function TerminalPane({
       onInputRef.current(`\u0015${command}`)
     }
     term.onData((data) => {
-      if (data === '\u001b[A' || data === '\u001bOA') {
+      const cleanData = stripBracketedPasteControls(data)
+      if (cleanData === '\u001b[A' || cleanData === '\u001bOA') {
         recallLastCommand()
         return
       }
       if (pendingMultilineRecallRef.current) {
-        if (data === '\r') {
+        if (cleanData === '\r') {
           const command = pendingMultilineRecallRef.current
           pendingMultilineRecallRef.current = null
           term.write('\r\n')
@@ -1426,11 +1482,11 @@ function TerminalPane({
           })
           return
         }
-        if (data === '\u0003') {
+        if (cleanData === '\u0003') {
           pendingMultilineRecallRef.current = null
         }
       }
-      onInputRef.current(data)
+      if (cleanData) onInputRef.current(cleanData)
     })
     term.attachCustomKeyEventHandler((event) => {
       const isPaste =
