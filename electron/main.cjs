@@ -261,25 +261,6 @@ const maxProbeDepth = 5;
 const maxProbeFiles = 5000;
 const maxProbeFileSize = 1024 * 1024;
 
-function resolveProjectRoot(cwd) {
-  let current = fs.realpathSync(cwd);
-  let markerRoot = current;
-
-  while (true) {
-    if (fs.existsSync(path.join(current, ".git"))) return current;
-    for (const markerName of projectMarkerNames) {
-      if (fs.existsSync(path.join(current, markerName))) {
-        markerRoot = current;
-        break;
-      }
-    }
-
-    const parent = path.dirname(current);
-    if (parent === current) return markerRoot;
-    current = parent;
-  }
-}
-
 function readTextFile(filePath, index) {
   const stat = fs.statSync(filePath);
   if (stat.size > maxProbeFileSize) {
@@ -554,16 +535,14 @@ ipcMain.handle("project:inspect", (_event, request) => {
   if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
     throw new Error(`Project path does not exist: ${cwd || "(empty)"}`);
   }
-  const projectRoot = resolveProjectRoot(cwd);
-  const index = createProjectIndex(projectRoot);
+  const index = createProjectIndex(cwd);
   return {
     cwd,
     scannedAt: Date.now(),
     scan: {
       mode: "deep",
       fileCount: index.files.length,
-      root: projectRoot,
-      projectRoots: [...index.projectRoots].sort((a, b) => a.localeCompare(b)).map((root) => safeRelative(projectRoot, root)),
+      projectRoots: [...index.projectRoots].sort((a, b) => a.localeCompare(b)).map((projectRoot) => safeRelative(cwd, projectRoot)),
       maxDepth: maxProbeDepth,
     },
     services: detectServices(index),
