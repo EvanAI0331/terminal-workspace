@@ -49,17 +49,19 @@ function legacyWorkspaceStatePaths() {
 function readWorkspaceState() {
   const filePath = workspaceStatePath();
   const currentState = readStateFile(filePath);
+  if (currentState?.version === 1) return currentState;
+
   const legacyStates = legacyWorkspaceStatePaths()
     .map((legacyPath) => ({ path: legacyPath, state: readStateFile(legacyPath) }))
     .filter((entry) => entry.state);
   const bestLegacy = legacyStates.sort((a, b) => stateScore(b.state) - stateScore(a.state))[0];
 
-  if (bestLegacy && stateScore(bestLegacy.state) > stateScore(currentState)) {
+  if (bestLegacy?.state?.version === 1) {
     writeWorkspaceState(bestLegacy.state);
     return bestLegacy.state;
   }
 
-  return currentState;
+  return null;
 }
 
 function writeWorkspaceState(state) {
