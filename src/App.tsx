@@ -72,6 +72,7 @@ type ProjectInspection = {
   scan?: {
     mode: string
     fileCount: number
+    root?: string
     projectRoots: string[]
     maxDepth: number
   }
@@ -260,6 +261,9 @@ function App() {
   )
   const activeTerminal =
     (activeTerminalId ? terminals[activeTerminalId] : undefined) ?? activeTerminals[0]
+  const terminalProjectPath = activeTerminals.find((terminal) => terminal.cwd.trim())?.cwd.trim() ?? ''
+  const effectiveProjectPath =
+    activeProject.path.trim() || activeTerminal?.cwd.trim() || terminalProjectPath
   const recentTerminals = Object.values(terminals)
     .filter((terminal) => terminal.projectId === activeProject.id)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
@@ -446,7 +450,21 @@ function App() {
   }, [activeTerminalId, terminals])
 
   useEffect(() => {
-    const scanPath = activeProject.path
+    if (!isStateLoaded) return
+    if (activeProject.path.trim() || !effectiveProjectPath) return
+    Promise.resolve().then(() => {
+      setProjects((current) =>
+        current.map((project) =>
+          project.id === activeProject.id && !project.path.trim()
+            ? { ...project, path: effectiveProjectPath }
+            : project,
+        ),
+      )
+    })
+  }, [activeProject.id, activeProject.path, effectiveProjectPath, isStateLoaded])
+
+  useEffect(() => {
+    const scanPath = effectiveProjectPath
     if (!window.terminalHost || !scanPath) {
       Promise.resolve().then(() => {
         setInspection(null)
@@ -484,12 +502,12 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [activeProject.path])
+  }, [effectiveProjectPath])
 
   const createProject = () => {
     const name = projectDraft.name.trim() || `项目 ${projects.length + 1}`
     const id = makeId('project')
-    const projectPath = projectDraft.path.trim() || activeProject.path || defaultPath
+    const projectPath = projectDraft.path.trim() || effectiveProjectPath || defaultPath
     const project: Project = {
       id,
       name,
@@ -506,7 +524,7 @@ function App() {
 
   const addTerminal = async () => {
     const id = makeId('terminal')
-    let cwd = activeProject.path
+    let cwd = effectiveProjectPath
     const name = `终端 ${activeProject.terminalIds.length + 1}`
 
     if (!cwd && window.terminalHost) {
@@ -770,7 +788,7 @@ function App() {
     const fallbackProject: Project = {
       id: 'project_current',
       name: '当前工作区',
-      path: projectDraft.path || defaultPath,
+      path: projectDraft.path || effectiveProjectPath || defaultPath,
       terminalIds: [],
     }
     const remainingProjects = projects.filter((item) => item.id !== project.id)
@@ -826,7 +844,7 @@ function App() {
   }
 
   const renderProjectPanel = () => {
-    const activeInspection = inspection?.cwd === activeProject.path ? inspection : null
+    const activeInspection = inspection?.cwd === effectiveProjectPath ? inspection : null
 
     if (sidebarPanel === 'terminals') {
       if (!activeTerminals.length) {
@@ -861,8 +879,8 @@ function App() {
       ))
     }
 
-    if (!activeProject.path) return <PanelEmpty title="未设置目录" text="请先为当前项目设置真实目录。" />
-    if (isInspecting) return <PanelEmpty title="正在扫描" text={activeProject.path} />
+    if (!effectiveProjectPath) return <PanelEmpty title="未设置目录" text="请先为当前项目设置真实目录，或先添加一个真实终端。" />
+    if (isInspecting) return <PanelEmpty title="正在扫描" text={effectiveProjectPath} />
     if (inspectionError) return <PanelEmpty title="扫描失败" text={inspectionError} />
     if (!activeInspection) return <PanelEmpty title="未扫描" text="没有当前项目的扫描结果。" />
 
