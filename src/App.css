@@ -592,8 +592,6 @@ input {
   height: 100%;
   min-width: 0;
   min-height: 0;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) 42px;
   background: #070b0f;
 }
 
@@ -608,45 +606,6 @@ input {
   gap: 10px;
   color: #8f9aaa;
   font-size: 13px;
-}
-
-.terminalRestoreBar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-top: 1px solid var(--line-soft);
-  background: rgba(16, 23, 31, 0.96);
-}
-
-.terminalRestoreBar span {
-  margin-left: auto;
-  color: #8f9aaa;
-  font-size: 12px;
-}
-
-.restoreButton {
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 0 10px;
-  color: #c9d3df;
-  background: #111923;
-  font-size: 12px;
-}
-
-.restoreButton.primary {
-  color: #f7fbff;
-  border-color: #356087;
-  background: #15334c;
-}
-
-.restoreButton:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
 }
 
 .xtermHost,

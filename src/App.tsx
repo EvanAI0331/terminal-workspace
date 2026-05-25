@@ -463,10 +463,11 @@ function App() {
   const createProject = () => {
     const name = projectDraft.name.trim() || `项目 ${projects.length + 1}`
     const id = makeId('project')
+    const projectPath = projectDraft.path.trim() || activeProject.path || defaultPath
     const project: Project = {
       id,
       name,
-      path: projectDraft.path.trim() || defaultPath,
+      path: projectPath,
       terminalIds: [],
     }
     setProjects((current) => [...current, project])
@@ -479,8 +480,24 @@ function App() {
 
   const addTerminal = async () => {
     const id = makeId('terminal')
-    const cwd = activeProject.path
+    let cwd = activeProject.path
     const name = `终端 ${activeProject.terminalIds.length + 1}`
+
+    if (!cwd && window.terminalHost) {
+      try {
+        const workspace = await window.terminalHost.workspace()
+        cwd = workspace.cwd
+        setProjects((current) =>
+          current.map((project) =>
+            project.id === activeProject.id ? { ...project, path: workspace.cwd } : project,
+          ),
+        )
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        setNotice(`读取工作区目录失败：${message}`)
+      }
+    }
+
     const terminal: TerminalModel = {
       id,
       projectId: activeProject.id,
@@ -492,55 +509,48 @@ function App() {
       eventLog: [],
     }
 
-    setTerminals((current) => ({ ...current, [id]: terminal }))
-    setProjects((current) =>
-      current.map((project) =>
-        project.id === activeProject.id
-          ? { ...project, terminalIds: [...project.terminalIds, id] }
-          : project,
-      ),
-    )
-    setActiveTerminalId(id)
-    setSidebarPanel('terminals')
-    setExpandedProjectIds((current) => [...new Set([...current, activeProject.id])])
+    const attachTerminal = (nextTerminal: TerminalModel) => {
+      setTerminals((current) => ({ ...current, [id]: nextTerminal }))
+      setProjects((current) =>
+        current.map((project) =>
+          project.id === activeProject.id
+            ? { ...project, terminalIds: [...project.terminalIds, id] }
+            : project,
+        ),
+      )
+      setActiveTerminalId(id)
+      setSidebarPanel('terminals')
+      setExpandedProjectIds((current) => [...new Set([...current, activeProject.id])])
+    }
 
     if (!window.terminalHost) {
-      setTerminals((current) => ({
-        ...current,
-        [id]: {
-          ...current[id],
-          eventLog: [event('Electron preload 不可用；请使用 npm run dev 启动桌面端。')],
-        },
-      }))
+      attachTerminal({
+        ...terminal,
+        eventLog: [event('Electron preload 不可用；请使用 npm run dev 启动桌面端。')],
+      })
       setNotice('未连接 Electron 运行时，无法创建真实终端。')
       return
     }
 
     try {
       const runtime = await window.terminalHost.create({ id, cwd, cols: 110, rows: 30 })
-      setTerminals((current) => ({
-        ...current,
-        [id]: {
-          ...current[id],
-          status: 'running',
-          pid: runtime.pid,
-          shell: runtime.shell,
-          cwd: runtime.cwd,
-          createdAt: runtime.createdAt,
-          eventLog: [event(`已启动真实 PTY，PID ${runtime.pid}`), ...(current[id]?.eventLog ?? [])],
-        },
-      }))
+      attachTerminal({
+        ...terminal,
+        status: 'running',
+        pid: runtime.pid,
+        shell: runtime.shell,
+        cwd: runtime.cwd,
+        createdAt: runtime.createdAt,
+        eventLog: [event(`已启动真实 PTY，PID ${runtime.pid}`)],
+      })
       setNotice(`已添加终端：${name}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      setTerminals((current) => ({
-        ...current,
-        [id]: {
-          ...current[id],
-          status: 'exited',
-          eventLog: [event(`启动失败：${message}`), ...(current[id]?.eventLog ?? [])],
-        },
-      }))
+      attachTerminal({
+        ...terminal,
+        status: 'exited',
+        eventLog: [event(`启动失败：${message}`)],
+      })
       setNotice(`终端启动失败：${message}`)
     }
   }
@@ -771,8 +781,6 @@ function App() {
         >
           <TerminalPane
             terminal={terminal}
-            onStart={() => startTerminal(terminal)}
-            onRerun={() => rerunTerminal(terminal)}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
               setTerminals((current) => {
@@ -1259,14 +1267,10 @@ function TerminalCard({
 
 function TerminalPane({
   terminal,
-  onStart,
-  onRerun,
   onInput,
   onResize,
 }: {
   terminal: TerminalModel
-  onStart: () => void
-  onRerun: () => void
   onInput: (data: string) => void
   onResize: (cols: number, rows: number) => void
 }) {
@@ -1389,25 +1393,9 @@ function TerminalPane({
         ) : (
           <div className="terminalRestoreEmpty">
             <TerminalSquare size={24} />
-            <span>终端尚未启动。</span>
+            <span>{statusText[terminal.status]}</span>
           </div>
         )}
-        <div className="terminalRestoreBar" onClick={(event) => event.stopPropagation()}>
-          <button type="button" className="restoreButton primary" onClick={onStart}>
-            <Play size={14} />
-            启动终端
-          </button>
-          <button
-            type="button"
-            className="restoreButton"
-            disabled={!terminal.lastCommand}
-            onClick={onRerun}
-          >
-            <ChevronsRight size={14} />
-            重新执行上次命令
-          </button>
-          <span>{statusText[terminal.status]}</span>
-        </div>
       </div>
     )
   }
