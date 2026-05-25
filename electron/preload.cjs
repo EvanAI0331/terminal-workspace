@@ -8,6 +8,7 @@ contextBridge.exposeInMainWorld("terminalHost", {
   cwd: (id) => ipcRenderer.invoke("terminal:cwd", id),
   list: () => ipcRenderer.invoke("terminal:list"),
   workspace: () => ipcRenderer.invoke("app:workspace"),
+  stateMeta: () => ipcRenderer.invoke("app:state-meta"),
   loadState: () => ipcRenderer.invoke("app:state-load"),
   saveState: (state) => ipcRenderer.invoke("app:state-save", state),
   saveStateSync: (state) => ipcRenderer.sendSync("app:state-save-sync", state),

@@ -108,6 +108,7 @@ type TerminalHost = {
   kill: (id: string) => Promise<{ ok: boolean }>
   cwd: (id: string) => Promise<{ ok: boolean; cwd: string | null }>
   workspace: () => Promise<{ cwd: string; shell: string }>
+  stateMeta?: () => Promise<{ userData: string; statePath: string }>
   loadState: () => Promise<{ state: PersistedWorkspaceState | null; path: string }>
   saveState: (state: PersistedWorkspaceState) => Promise<{ ok: boolean; path: string }>
   saveStateSync?: (state: PersistedWorkspaceState) => { ok: boolean; path: string }

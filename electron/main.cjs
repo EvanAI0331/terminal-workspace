@@ -14,6 +14,9 @@ const dockIconPath = path.join(__dirname, "../assets/TerminalTopology.png");
 const stableUserDataDirName = "Terminal Workspace";
 const legacyUserDataDirNames = ["terminal", "terminal-workspace"];
 
+app.setName(stableUserDataDirName);
+app.setPath("userData", path.join(app.getPath("appData"), stableUserDataDirName));
+
 function loadIcon(iconPath) {
   if (!fs.existsSync(iconPath)) {
     throw new Error(`Application icon is missing: ${iconPath}`);
@@ -123,8 +126,6 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
-  app.setName("Terminal Workspace");
-  app.setPath("userData", path.join(app.getPath("appData"), stableUserDataDirName));
   if (process.platform === "darwin") {
     app.dock.setIcon(loadIcon(dockIconPath));
   }
@@ -205,6 +206,11 @@ ipcMain.handle("terminal:create", (event, request) => {
 ipcMain.handle("app:workspace", () => ({
   cwd: process.cwd(),
   shell: process.env.SHELL || "/bin/zsh",
+}));
+
+ipcMain.handle("app:state-meta", () => ({
+  userData: app.getPath("userData"),
+  statePath: workspaceStatePath(),
 }));
 
 ipcMain.handle("app:state-load", () => ({
