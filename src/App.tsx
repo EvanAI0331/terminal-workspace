@@ -448,17 +448,26 @@ function App() {
   }, [activeTerminalId, terminals])
 
   useEffect(() => {
-    if (!window.terminalHost || !activeProject.path) return
+    const scanPath = activeProject.path
+    if (!window.terminalHost || !scanPath) {
+      Promise.resolve().then(() => {
+        setInspection(null)
+        setInspectionError(null)
+        setIsInspecting(false)
+      })
+      return
+    }
     let cancelled = false
     Promise.resolve()
       .then(() => {
         if (cancelled) return null
         setIsInspecting(true)
+        setInspection(null)
         setInspectionError(null)
-        return window.terminalHost?.inspectProject({ cwd: activeProject.path }) ?? null
+        return window.terminalHost?.inspectProject({ cwd: scanPath }) ?? null
       })
       .then((result) => {
-        if (cancelled || !result) return
+        if (cancelled || !result || result.cwd !== scanPath) return
         setInspection(result)
         setNotice(
           `已深度扫描 ${result.scan?.fileCount ?? 0} 个文件，识别 ${result.scan?.projectRoots.length ?? 1} 个项目根${result.warnings?.length ? `，${result.warnings.length} 条警告` : ''}。`,
@@ -819,6 +828,8 @@ function App() {
   }
 
   const renderProjectPanel = () => {
+    const activeInspection = inspection?.cwd === activeProject.path ? inspection : null
+
     if (sidebarPanel === 'terminals') {
       if (!activeTerminals.length) {
         return <PanelEmpty title={activeProject.name} text="点击“添加终端”创建真实交互 shell。" />
@@ -852,14 +863,15 @@ function App() {
       ))
     }
 
+    if (!activeProject.path) return <PanelEmpty title="未设置目录" text="请先为当前项目设置真实目录。" />
     if (isInspecting) return <PanelEmpty title="正在扫描" text={activeProject.path} />
     if (inspectionError) return <PanelEmpty title="扫描失败" text={inspectionError} />
-    if (!inspection) return <PanelEmpty title="未扫描" text="没有可用的项目扫描结果。" />
+    if (!activeInspection) return <PanelEmpty title="未扫描" text="没有当前项目的扫描结果。" />
 
     if (sidebarPanel === 'services') {
-      return inspection.services.length ? (
+      return activeInspection.services.length ? (
         <div className="resourceGrid">
-          {inspection.services.map((service) => (
+          {activeInspection.services.map((service) => (
             <ResourceItem
               key={`${service.source}-${service.name}`}
               title={service.name}
@@ -872,9 +884,9 @@ function App() {
     }
 
     if (sidebarPanel === 'env') {
-      return inspection.environment.length ? (
+      return activeInspection.environment.length ? (
         <div className="resourceGrid">
-          {inspection.environment.map((entry) => (
+          {activeInspection.environment.map((entry) => (
             <ResourceItem
               key={`${entry.source}-${entry.key}`}
               title={entry.key}
@@ -887,9 +899,9 @@ function App() {
     }
 
     if (sidebarPanel === 'tasks') {
-      return inspection.tasks.length ? (
+      return activeInspection.tasks.length ? (
         <div className="resourceGrid">
-          {inspection.tasks.map((task) => (
+          {activeInspection.tasks.map((task) => (
             <ResourceItem
               key={`${task.source}-${task.kind}-${task.name}`}
               title={task.name}
@@ -902,9 +914,9 @@ function App() {
     }
 
     if (sidebarPanel === 'notes') {
-      return inspection.notes.length ? (
+      return activeInspection.notes.length ? (
         <div className="resourceGrid">
-          {inspection.notes.map((note) => (
+          {activeInspection.notes.map((note) => (
             <ResourceItem
               key={note.source}
               title={note.title}
@@ -941,140 +953,142 @@ function App() {
           </div>
         </div>
 
-        <div className="sidebarSection">项目</div>
-        <nav className="projectList" aria-label="Projects">
-          {projects.map((project) => {
-            const isActiveProject = project.id === activeProject.id
-            const isExpanded = expandedProjectIds.includes(project.id)
-            const isProbeExpanded = expandedProbeProjectIds.includes(project.id)
-            const projectTerminals = project.terminalIds
-              .map((id) => terminals[id])
-              .filter((terminal): terminal is TerminalModel => Boolean(terminal))
-            return (
-              <div key={project.id} className="projectGroup">
-                <button
-                  type="button"
-                  className={`projectRoot ${isActiveProject ? 'selected' : ''}`}
-                  onClick={() => selectProject(project)}
-                >
-                  <span
-                    className="projectDisclosure"
-                    role="button"
-                    tabIndex={0}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      toggleProject(project.id)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
+        <div className="sidebarScroll">
+          <div className="sidebarSection">项目</div>
+          <nav className="projectList" aria-label="Projects">
+            {projects.map((project) => {
+              const isActiveProject = project.id === activeProject.id
+              const isExpanded = expandedProjectIds.includes(project.id)
+              const isProbeExpanded = expandedProbeProjectIds.includes(project.id)
+              const projectTerminals = project.terminalIds
+                .map((id) => terminals[id])
+                .filter((terminal): terminal is TerminalModel => Boolean(terminal))
+              return (
+                <div key={project.id} className="projectGroup">
+                  <button
+                    type="button"
+                    className={`projectRoot ${isActiveProject ? 'selected' : ''}`}
+                    onClick={() => selectProject(project)}
+                  >
+                    <span
+                      className="projectDisclosure"
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
                         event.stopPropagation()
                         toggleProject(project.id)
-                      }
-                    }}
-                  >
-                    {isExpanded ? <ChevronDown size={15} /> : <ChevronsRight size={15} />}
-                  </span>
-                  <FolderOpen size={19} />
-                  <span>{project.name}</span>
-                  <span
-                    className="projectDelete"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`删除项目 ${project.name}`}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      deleteProject(project)
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          toggleProject(project.id)
+                        }
+                      }}
+                    >
+                      {isExpanded ? <ChevronDown size={15} /> : <ChevronsRight size={15} />}
+                    </span>
+                    <FolderOpen size={19} />
+                    <span>{project.name}</span>
+                    <span
+                      className="projectDelete"
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`删除项目 ${project.name}`}
+                      onClick={(event) => {
                         event.stopPropagation()
                         deleteProject(project)
-                      }
-                    }}
-                  >
-                    <X size={15} />
-                  </span>
-                </button>
-                {isExpanded ? (
-                  <>
-                    <button
-                      type="button"
-                      className={`treeItem ${isActiveProject && sidebarPanel === 'terminals' ? 'selected' : ''}`}
-                      onClick={() => {
-                        selectProject(project)
-                        setSidebarPanel('terminals')
-                        setNotice('已切换到终端列表。')
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          deleteProject(project)
+                        }
                       }}
                     >
-                      <TerminalSquare size={17} />
-                      <span>终端</span>
-                    </button>
-                    {projectTerminals.map((terminal, index) => (
+                      <X size={15} />
+                    </span>
+                  </button>
+                  {isExpanded ? (
+                    <>
                       <button
-                        key={terminal.id}
                         type="button"
-                        className={`terminalTreeItem ${terminal.id === activeTerminal?.id ? 'selected' : ''}`}
-                        onClick={() => selectRecentTerminal(terminal)}
+                        className={`treeItem ${isActiveProject && sidebarPanel === 'terminals' ? 'selected' : ''}`}
+                        onClick={() => {
+                          selectProject(project)
+                          setSidebarPanel('terminals')
+                          setNotice('已切换到终端列表。')
+                        }}
                       >
-                        <TerminalSquare size={15} />
-                        <span>{terminal.name || `终端 ${index + 1}`}</span>
-                        <i className={`dot ${terminal.status}`} />
+                        <TerminalSquare size={17} />
+                        <span>终端</span>
                       </button>
-                    ))}
-                    <button
-                      type="button"
-                      className={`treeItem probeRoot ${isProbeExpanded ? 'expanded' : ''}`}
-                      onClick={() => {
-                        selectProject(project)
-                        toggleProjectProbe(project.id)
-                        setNotice(isProbeExpanded ? '已折叠项目探测。' : '已展开项目探测。')
-                      }}
-                    >
-                      {isProbeExpanded ? <ChevronDown size={17} /> : <ChevronsRight size={17} />}
-                      <span>项目探测</span>
-                    </button>
-                    {isProbeExpanded ? (
-                      <>
-                        <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'services' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('services'); setNotice('已显示项目服务探测结果。') }}>
-                          <Server size={16} />
-                          <span>服务</span>
+                      {projectTerminals.map((terminal, index) => (
+                        <button
+                          key={terminal.id}
+                          type="button"
+                          className={`terminalTreeItem ${terminal.id === activeTerminal?.id ? 'selected' : ''}`}
+                          onClick={() => selectRecentTerminal(terminal)}
+                        >
+                          <TerminalSquare size={15} />
+                          <span>{terminal.name || `终端 ${index + 1}`}</span>
+                          <i className={`dot ${terminal.status}`} />
                         </button>
-                        <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'env' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('env'); setNotice('已显示项目环境探测结果。') }}>
-                          <Settings size={16} />
-                          <span>环境</span>
-                        </button>
-                        <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'tasks' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('tasks'); setNotice('已显示项目任务探测结果。') }}>
-                          <ChevronsRight size={16} />
-                          <span>任务</span>
-                        </button>
-                        <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'notes' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('notes'); setNotice('已显示项目笔记探测结果。') }}>
-                          <List size={16} />
-                          <span>笔记</span>
-                        </button>
-                      </>
-                    ) : null}
-                  </>
-                ) : null}
-              </div>
-            )
-          })}
-        </nav>
-        <div className="sidebarSection">最近终端</div>
-        <div className="quickList" aria-label="Recent terminals">
-          {recentTerminals.length ? recentTerminals.map((terminal) => (
-            <button
-              key={terminal.id}
-              type="button"
-              className={terminal.id === activeTerminal?.id ? 'selected' : ''}
-              onClick={() => selectRecentTerminal(terminal)}
-            >
-              <TerminalSquare size={15} />
-              <span>{terminal.name}</span>
-              <i className={`dot ${terminal.status}`} />
-            </button>
-          )) : <p className="sidebarHint">还没有真实终端。</p>}
+                      ))}
+                      <button
+                        type="button"
+                        className={`treeItem probeRoot ${isProbeExpanded ? 'expanded' : ''}`}
+                        onClick={() => {
+                          selectProject(project)
+                          toggleProjectProbe(project.id)
+                          setNotice(isProbeExpanded ? '已折叠项目探测。' : '已展开项目探测。')
+                        }}
+                      >
+                        {isProbeExpanded ? <ChevronDown size={17} /> : <ChevronsRight size={17} />}
+                        <span>项目探测</span>
+                      </button>
+                      {isProbeExpanded ? (
+                        <>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'services' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('services'); setNotice('已显示项目服务探测结果。') }}>
+                            <Server size={16} />
+                            <span>服务</span>
+                          </button>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'env' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('env'); setNotice('已显示项目环境探测结果。') }}>
+                            <Settings size={16} />
+                            <span>环境</span>
+                          </button>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'tasks' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('tasks'); setNotice('已显示项目任务探测结果。') }}>
+                            <ChevronsRight size={16} />
+                            <span>任务</span>
+                          </button>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'notes' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('notes'); setNotice('已显示项目笔记探测结果。') }}>
+                            <List size={16} />
+                            <span>笔记</span>
+                          </button>
+                        </>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+              )
+            })}
+          </nav>
+          <div className="sidebarSection">最近终端</div>
+          <div className="quickList" aria-label="Recent terminals">
+            {recentTerminals.length ? recentTerminals.map((terminal) => (
+              <button
+                key={terminal.id}
+                type="button"
+                className={terminal.id === activeTerminal?.id ? 'selected' : ''}
+                onClick={() => selectRecentTerminal(terminal)}
+              >
+                <TerminalSquare size={15} />
+                <span>{terminal.name}</span>
+                <i className={`dot ${terminal.status}`} />
+              </button>
+            )) : <p className="sidebarHint">还没有真实终端。</p>}
+          </div>
         </div>
         <div className="sidebarFooter">
           <button type="button" aria-label="New project" onClick={createProject}><Plus size={18} /></button>

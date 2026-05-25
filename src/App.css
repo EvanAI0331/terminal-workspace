@@ -31,8 +31,10 @@
 
 .sidebar {
   position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) 40px;
   -webkit-app-region: drag;
-  padding: 52px 14px 60px;
+  padding: 52px 14px 14px;
   border-right: 1px solid var(--line);
   background:
     radial-gradient(circle at 60% 0, rgba(60, 78, 96, 0.18), transparent 240px),
@@ -49,6 +51,25 @@
   align-items: center;
   gap: 12px;
   padding: 0 8px 22px;
+}
+
+.sidebarScroll {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 2px 12px 0;
+  -webkit-app-region: no-drag;
+  scrollbar-color: rgba(174, 185, 200, 0.48) transparent;
+  scrollbar-width: thin;
+}
+
+.sidebarScroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebarScroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(174, 185, 200, 0.36);
 }
 
 .brandNameInput,
@@ -228,10 +249,6 @@ input {
 }
 
 .sidebarFooter {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
   height: 40px;
   display: flex;
   align-items: center;
