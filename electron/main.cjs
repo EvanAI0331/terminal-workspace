@@ -11,6 +11,8 @@ const sessions = new Map();
 const sensitiveEnvPattern = /(key|token|secret|password|passwd|pwd|credential|auth|private)/i;
 const appIconPath = path.join(__dirname, "../assets/TerminalTopology.icns");
 const dockIconPath = path.join(__dirname, "../assets/TerminalTopology.png");
+const stableUserDataDirName = "Terminal Workspace";
+const legacyUserDataDirNames = ["terminal", "terminal-workspace"];
 
 function loadIcon(iconPath) {
   if (!fs.existsSync(iconPath)) {
@@ -27,10 +29,37 @@ function workspaceStatePath() {
   return path.join(app.getPath("userData"), "terminal-workspace-state.json");
 }
 
-function readWorkspaceState() {
-  const filePath = workspaceStatePath();
+function stateScore(state) {
+  if (!state || state.version !== 1) return 0;
+  return (state.projects?.length || 0) * 10 + Object.keys(state.terminals || {}).length;
+}
+
+function readStateFile(filePath) {
   if (!fs.existsSync(filePath)) return null;
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function legacyWorkspaceStatePaths() {
+  const appData = app.getPath("appData");
+  return legacyUserDataDirNames
+    .map((dirName) => path.join(appData, dirName, "terminal-workspace-state.json"))
+    .filter((filePath) => filePath !== workspaceStatePath());
+}
+
+function readWorkspaceState() {
+  const filePath = workspaceStatePath();
+  const currentState = readStateFile(filePath);
+  const legacyStates = legacyWorkspaceStatePaths()
+    .map((legacyPath) => ({ path: legacyPath, state: readStateFile(legacyPath) }))
+    .filter((entry) => entry.state);
+  const bestLegacy = legacyStates.sort((a, b) => stateScore(b.state) - stateScore(a.state))[0];
+
+  if (bestLegacy && stateScore(bestLegacy.state) > stateScore(currentState)) {
+    writeWorkspaceState(bestLegacy.state);
+    return bestLegacy.state;
+  }
+
+  return currentState;
 }
 
 function writeWorkspaceState(state) {
@@ -93,6 +122,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   app.setName("Terminal Workspace");
+  app.setPath("userData", path.join(app.getPath("appData"), stableUserDataDirName));
   if (process.platform === "darwin") {
     app.dock.setIcon(loadIcon(dockIconPath));
   }
