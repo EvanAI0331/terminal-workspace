@@ -152,8 +152,22 @@ input {
   border-radius: 4px;
 }
 
-.projectDisclosure:hover {
+.projectDelete {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  color: #9ba6b5;
+}
+
+.projectDisclosure:hover,
+.projectDelete:hover {
   background: rgba(255, 255, 255, 0.08);
+}
+
+.projectDelete:hover {
+  color: var(--red);
 }
 
 .projectRoot.collapsed {

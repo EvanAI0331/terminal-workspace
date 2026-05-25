@@ -738,6 +738,40 @@ function App() {
     }))
   }
 
+  const deleteProject = async (project: Project) => {
+    await Promise.all(project.terminalIds.map((terminalId) => window.terminalHost?.kill(terminalId)))
+
+    const fallbackProject: Project = {
+      id: 'project_current',
+      name: '当前工作区',
+      path: projectDraft.path || defaultPath,
+      terminalIds: [],
+    }
+    const remainingProjects = projects.filter((item) => item.id !== project.id)
+    const nextProjects = remainingProjects.length ? remainingProjects : [fallbackProject]
+    const nextActiveProject =
+      project.id === activeProject.id
+        ? nextProjects[0]
+        : projects.find((item) => item.id === activeProject.id) ?? nextProjects[0]
+
+    setTerminals((current) => {
+      const next = { ...current }
+      for (const terminalId of project.terminalIds) {
+        delete next[terminalId]
+      }
+      return next
+    })
+    setProjects(nextProjects)
+    setExpandedProjectIds((current) =>
+      current.filter((projectId) => projectId !== project.id && nextProjects.some((item) => item.id === projectId)),
+    )
+    setExpandedProbeProjectIds((current) => current.filter((projectId) => projectId !== project.id))
+    setActiveProjectId(nextActiveProject.id)
+    setActiveTerminalId(nextActiveProject.terminalIds[0] ?? null)
+    setSidebarPanel('terminals')
+    setNotice(`已删除项目：${project.name}`)
+  }
+
   const selectProject = (project: Project) => {
     setActiveProjectId(project.id)
     setExpandedProjectIds((current) => [...new Set([...current, project.id])])
@@ -924,22 +958,23 @@ function App() {
                   <FolderOpen size={19} />
                   <span>{project.name}</span>
                   <span
-                    className="projectDisclosure"
+                    className="projectDelete"
                     role="button"
                     tabIndex={0}
+                    aria-label={`删除项目 ${project.name}`}
                     onClick={(event) => {
                       event.stopPropagation()
-                      toggleProject(project.id)
+                      deleteProject(project)
                     }}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
                         event.preventDefault()
                         event.stopPropagation()
-                        toggleProject(project.id)
+                        deleteProject(project)
                       }
                     }}
                   >
-                    {isExpanded ? <ChevronDown size={15} /> : <ChevronsRight size={15} />}
+                    <X size={15} />
                   </span>
                 </button>
                 {isExpanded ? (
