@@ -145,18 +145,8 @@ const appendTranscript = (value: string | undefined, data: string) =>
 
 const pastedCommandPrefix = '\u001b]1337;TerminalWorkspaceLastCommand='
 const pastedCommandSuffix = '\u0007'
-const bracketedPasteStart = '\u001b[200~'
-const bracketedPasteEnd = '\u001b[201~'
-
 const isRememberCommandEvent = (data: string) =>
   data.startsWith(pastedCommandPrefix) && data.endsWith(pastedCommandSuffix)
-
-const stripBracketedPasteControls = (data: string) =>
-  data
-    .replaceAll(bracketedPasteStart, '')
-    .replaceAll(bracketedPasteEnd, '')
-    .replaceAll('[200~', '')
-    .replaceAll('[201~', '')
 
 const commandLinesFromInput = (data: string) =>
   data
@@ -165,16 +155,15 @@ const commandLinesFromInput = (data: string) =>
     .filter(Boolean)
 
 const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
-  const cleanData = stripBracketedPasteControls(data)
-  const commandLines = commandLinesFromInput(cleanData)
+  const commandLines = commandLinesFromInput(data)
   const isCommandBlockInput = commandLines.length > 1
   let buffer = terminal.inputBuffer ?? ''
   let lastCommand = terminal.lastCommand
   let command = terminal.command
 
-  if (isRememberCommandEvent(cleanData)) {
-    const encoded = cleanData.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
-    const pastedCommand = stripBracketedPasteControls(decodeURIComponent(encoded))
+  if (isRememberCommandEvent(data)) {
+    const encoded = data.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
+    const pastedCommand = decodeURIComponent(encoded)
     return {
       ...terminal,
       inputBuffer: pastedCommand,
@@ -193,7 +182,7 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
     }
   }
 
-  for (const char of cleanData) {
+  for (const char of data) {
     if (char === '\r' || char === '\n') {
       const trimmed = buffer.trim()
       if (trimmed) {
@@ -918,17 +907,16 @@ function App() {
             terminal={terminal}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
-              const cleanData = stripBracketedPasteControls(data)
-              const shouldWriteToPty = !isRememberCommandEvent(cleanData)
+              const shouldWriteToPty = !isRememberCommandEvent(data)
               setTerminals((current) => {
                 const currentTerminal = current[terminal.id]
                 if (!currentTerminal) return current
                 return {
                   ...current,
-                  [terminal.id]: updateInputState(currentTerminal, cleanData),
+                  [terminal.id]: updateInputState(currentTerminal, data),
                 }
               })
-              if (shouldWriteToPty && cleanData) window.terminalHost?.write({ id: terminal.id, data: cleanData })
+              if (shouldWriteToPty) window.terminalHost?.write({ id: terminal.id, data })
             }}
           />
         </TerminalCard>
@@ -1461,10 +1449,7 @@ function TerminalPane({
     if (initialTranscriptRef.current) {
       term.write(initialTranscriptRef.current)
     }
-    term.onData((data) => {
-      const cleanData = stripBracketedPasteControls(data)
-      if (cleanData) onInputRef.current(cleanData)
-    })
+    term.onData((data) => onInputRef.current(data))
     termRef.current = term
     fitRef.current = fit
     fit.fit()
