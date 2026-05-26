@@ -14,7 +14,10 @@ contextBridge.exposeInMainWorld("terminalHost", {
   saveStateSync: (state) => ipcRenderer.sendSync("app:state-save-sync", state),
   inspectProject: (request) => ipcRenderer.invoke("project:inspect", request),
   readClipboardText: () => clipboard.readText(),
-  writeClipboardText: (text) => clipboard.writeText(text),
+  writeClipboardText: (text) => {
+    clipboard.writeText(text);
+    return clipboard.readText();
+  },
   onData: (callback) => {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on("terminal:data", listener);

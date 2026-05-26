@@ -115,7 +115,7 @@ type TerminalHost = {
   saveStateSync?: (state: PersistedWorkspaceState) => { ok: boolean; path: string }
   inspectProject: (request: { cwd: string }) => Promise<ProjectInspection>
   readClipboardText: () => string
-  writeClipboardText: (text: string) => void
+  writeClipboardText?: (text: string) => void
   onData: (callback: (payload: { id: string; data: string }) => void) => () => void
   onExit: (
     callback: (payload: { id: string; exitCode: number; signal?: number }) => void,
@@ -896,14 +896,25 @@ function App() {
     setNotice(`Switched to terminal: ${terminal.name}`)
   }
 
-  const copyLaunchCommand = (terminal: TerminalModel) => {
+  const copyLaunchCommand = async (terminal: TerminalModel) => {
     const command = normalizeStoredCommand(terminal.lastCommand || terminal.command)
     if (!command) {
       setNotice('No launch command is available for this terminal.')
       return
     }
-    window.terminalHost?.writeClipboardText(command)
-    setNotice('Launch command copied.')
+    try {
+      if (window.terminalHost?.writeClipboardText) {
+        window.terminalHost.writeClipboardText(command)
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(command)
+      } else {
+        throw new Error('Clipboard write API is unavailable.')
+      }
+      setNotice(`Launch command copied from ${terminal.name}.`)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setNotice(`Failed to copy launch command: ${message}`)
+    }
   }
 
   const renderProjectPanel = () => {
