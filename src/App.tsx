@@ -15,6 +15,7 @@ import {
   PanelRight,
   Play,
   Plus,
+  Save,
   Search,
   Server,
   Settings,
@@ -1093,6 +1094,34 @@ function App() {
     }
   }
 
+  const saveLaunchCommand = (terminal: TerminalModel, command: string) => {
+    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
+    const normalizedCommand = normalizeStoredCommand(command)
+    if (normalizedCommand && !commandBelongsToTerminal(terminal, normalizedCommand, projectPath)) {
+      setNotice('Launch command must belong to this terminal project path.')
+      return false
+    }
+    setTerminals((current) => {
+      const currentTerminal = current[terminal.id]
+      if (!currentTerminal) return current
+      return {
+        ...current,
+        [terminal.id]: {
+          ...currentTerminal,
+          command: normalizedCommand,
+          lastCommand: normalizedCommand || undefined,
+          inputBuffer: '',
+          eventLog: [
+            event(normalizedCommand ? 'Launch command saved.' : 'Launch command cleared.'),
+            ...(currentTerminal.eventLog ?? []),
+          ].slice(0, 12),
+        },
+      }
+    })
+    setNotice(normalizedCommand ? `Launch command saved for ${terminal.name}.` : `Launch command cleared for ${terminal.name}.`)
+    return true
+  }
+
   const renderProjectPanel = () => {
     const activeInspection = inspection?.cwd === activeProject.path ? inspection : null
 
@@ -1462,22 +1491,17 @@ function App() {
             </section>
             <section className="detailSection">
               <h2>Process</h2>
+              <div className="launchCommandPanel">
+                <label>Launch Command</label>
+                <LaunchCommandEditor
+                  key={`${activeTerminal.id}-${activeProject.path}`}
+                  terminal={activeTerminal}
+                  projectPath={activeProject.path}
+                  onSave={saveLaunchCommand}
+                  onCopy={copyLaunchCommand}
+                />
+              </div>
               <dl className="detailTable">
-                <div>
-                  <dt>Launch Command</dt>
-                  <dd className="detailValueWithAction">
-                    <span>{visibleLaunchCommand(activeTerminal, activeProject.path) || '-'}</span>
-                    <button
-                      type="button"
-                      className="inlineCopyButton"
-                      aria-label="Copy launch command"
-                      disabled={!visibleLaunchCommand(activeTerminal, activeProject.path)}
-                      onClick={() => copyLaunchCommand(activeTerminal)}
-                    >
-                      <Copy size={13} />
-                    </button>
-                  </dd>
-                </div>
                 <div><dt>Shell</dt><dd>{activeTerminal.shell || '-'}</dd></div>
                 <div><dt>Directory</dt><dd>{activeTerminal.cwd}</dd></div>
               </dl>
@@ -1534,6 +1558,60 @@ function App() {
         )}
       </aside>
     </main>
+  )
+}
+
+function LaunchCommandEditor({
+  terminal,
+  projectPath,
+  onSave,
+  onCopy,
+}: {
+  terminal: TerminalModel
+  projectPath: string
+  onSave: (terminal: TerminalModel, command: string) => boolean
+  onCopy: (terminal: TerminalModel) => void
+}) {
+  const storedCommand = normalizeStoredCommand(terminal.lastCommand || terminal.command)
+  const savedCommand = commandBelongsToTerminal(terminal, storedCommand, projectPath) ? storedCommand : ''
+  const [draft, setDraft] = useState(savedCommand)
+  const hasSavedCommand = Boolean(savedCommand)
+  const hasChanges = normalizeStoredCommand(draft) !== storedCommand
+
+  const saveDraft = () => {
+    const saved = onSave(terminal, draft)
+    if (saved) setDraft(normalizeStoredCommand(draft))
+  }
+
+  return (
+    <div className="launchCommandEditor">
+      <textarea
+        value={draft}
+        aria-label="Launch command"
+        placeholder="Enter launch command..."
+        onChange={(change) => setDraft(change.target.value)}
+      />
+      <div className="launchCommandActions">
+        <button
+          type="button"
+          className="launchCommandButton"
+          onClick={saveDraft}
+          disabled={!hasChanges}
+        >
+          <Save size={13} />
+          Save
+        </button>
+        <button
+          type="button"
+          className="inlineCopyButton"
+          aria-label="Copy launch command"
+          disabled={!hasSavedCommand}
+          onClick={() => onCopy(terminal)}
+        >
+          <Copy size={13} />
+        </button>
+      </div>
+    </div>
   )
 }
 
