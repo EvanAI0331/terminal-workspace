@@ -457,13 +457,15 @@ input {
 }
 
 .dot.exited,
-.statusPill.exited {
-  background: var(--red);
-}
-
+.statusPill.exited,
 .dot.unavailable,
 .statusPill.unavailable {
   background: var(--yellow);
+}
+
+.dot.failed,
+.statusPill.failed {
+  background: var(--red);
 }
 
 .terminalStage {
@@ -858,6 +860,10 @@ input {
   color: var(--green) !important;
 }
 
+.redText {
+  color: var(--red) !important;
+}
+
 .showAll,
 .historyLink {
   height: 30px;
@@ -901,6 +907,10 @@ input {
 
 .eventTimeline i.yellow {
   background: var(--yellow);
+}
+
+.eventTimeline i.red {
+  background: var(--red);
 }
 
 .legacyDetails,

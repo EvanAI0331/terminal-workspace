@@ -25,7 +25,7 @@ import {
 import '@xterm/xterm/css/xterm.css'
 import './App.css'
 
-type RuntimeStatus = 'idle' | 'running' | 'exited' | 'unavailable'
+type RuntimeStatus = 'idle' | 'running' | 'exited' | 'failed' | 'unavailable'
 
 type Project = {
   id: string
@@ -137,6 +137,7 @@ const statusText: Record<RuntimeStatus, string> = {
   idle: 'Idle',
   running: 'Running',
   exited: 'Exited',
+  failed: 'Failed',
   unavailable: 'Unavailable',
 }
 
@@ -417,11 +418,13 @@ function App() {
       setTerminals((current) => {
         const terminal = current[id]
         if (!terminal) return current
+        const wasStopRequested = terminal.eventLog?.[0]?.message === 'Stop requested'
+        const nextStatus: RuntimeStatus = exitCode === 0 || wasStopRequested ? 'exited' : 'failed'
         return {
           ...current,
           [id]: {
             ...terminal,
-            status: 'exited',
+            status: nextStatus,
             exitCode,
             eventLog: [
               event(`Process exited: code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
@@ -634,7 +637,7 @@ function App() {
       const message = error instanceof Error ? error.message : String(error)
       attachTerminal({
         ...terminal,
-        status: 'exited',
+        status: 'failed',
         eventLog: [event(`Start failed: ${message}`)],
       })
       setNotice(`Terminal start failed: ${message}`)
@@ -699,7 +702,7 @@ function App() {
         ...current,
         [terminal.id]: {
           ...current[terminal.id],
-          status: 'exited',
+          status: 'failed',
           eventLog: [event(`Start failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
@@ -763,7 +766,7 @@ function App() {
         ...current,
         [terminal.id]: {
           ...current[terminal.id],
-          status: 'exited',
+          status: 'failed',
           eventLog: [event(`Rerun failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
@@ -1272,7 +1275,12 @@ function App() {
             <section className="detailSection">
               <h2>Status</h2>
               <dl className="detailTable">
-                <div><dt>Status</dt><dd className={activeTerminal.status === 'running' ? 'greenText' : ''}>{statusText[activeTerminal.status]}</dd></div>
+                <div>
+                  <dt>Status</dt>
+                  <dd className={activeTerminal.status === 'running' ? 'greenText' : activeTerminal.status === 'failed' ? 'redText' : ''}>
+                    {statusText[activeTerminal.status]}
+                  </dd>
+                </div>
                 <div><dt>PID</dt><dd>{activeTerminal.pid ?? '-'}</dd></div>
                 <div><dt>Uptime</dt><dd>{formatUptime(activeTerminal.createdAt, activeTerminal.status)}</dd></div>
                 <div><dt>Started</dt><dd>{formatDateTime(activeTerminal.createdAt)}</dd></div>
@@ -1315,7 +1323,7 @@ function App() {
                 {activeTerminal.eventLog.map((event, index) => (
                   <div key={`${event.message}-${index}`}>
                     <time>{formatTime(event.time)}</time>
-                    <i className={activeTerminal.status === 'running' ? '' : 'yellow'} />
+                    <i className={activeTerminal.status === 'failed' ? 'red' : activeTerminal.status === 'running' ? '' : 'yellow'} />
                     <span>{event.message}</span>
                   </div>
                 ))}
