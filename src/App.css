@@ -760,7 +760,7 @@ input {
 
 .detailTable div {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   gap: 10px;
   min-height: 27px;
   align-items: center;
@@ -785,6 +785,35 @@ input {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.detailValueWithAction {
+  display: inline-grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 6px;
+}
+
+.detailValueWithAction span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineCopyButton {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: rgba(117, 174, 222, 0.12);
+  color: #8fd3ff;
+}
+
+.inlineCopyButton:hover:not(:disabled),
+.inlineCopyButton:focus-visible:not(:disabled) {
+  background: rgba(117, 174, 222, 0.22);
 }
 
 .detailInput {

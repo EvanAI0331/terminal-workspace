@@ -6,6 +6,7 @@ import {
   Bell,
   ChevronDown,
   ChevronsRight,
+  Copy,
   Filter,
   Folder,
   FolderOpen,
@@ -114,6 +115,7 @@ type TerminalHost = {
   saveStateSync?: (state: PersistedWorkspaceState) => { ok: boolean; path: string }
   inspectProject: (request: { cwd: string }) => Promise<ProjectInspection>
   readClipboardText: () => string
+  writeClipboardText: (text: string) => void
   onData: (callback: (payload: { id: string; data: string }) => void) => () => void
   onExit: (
     callback: (payload: { id: string; exitCode: number; signal?: number }) => void,
@@ -884,6 +886,16 @@ function App() {
     setNotice(`Switched to terminal: ${terminal.name}`)
   }
 
+  const copyLaunchCommand = (terminal: TerminalModel) => {
+    const command = terminal.lastCommand || terminal.command
+    if (!command) {
+      setNotice('No launch command is available for this terminal.')
+      return
+    }
+    window.terminalHost?.writeClipboardText(command)
+    setNotice('Launch command copied.')
+  }
+
   const renderProjectPanel = () => {
     const activeInspection = inspection?.cwd === activeProject.path ? inspection : null
 
@@ -1250,6 +1262,21 @@ function App() {
               <dl className="detailTable">
                 <div><dt>Command</dt><dd>{activeTerminal.command || activeTerminal.shell || 'interactive shell'}</dd></div>
                 <div><dt>Last Command</dt><dd>{activeTerminal.lastCommand || '-'}</dd></div>
+                <div>
+                  <dt>Launch Command</dt>
+                  <dd className="detailValueWithAction">
+                    <span>{activeTerminal.lastCommand || activeTerminal.command || '-'}</span>
+                    <button
+                      type="button"
+                      className="inlineCopyButton"
+                      aria-label="Copy launch command"
+                      disabled={!(activeTerminal.lastCommand || activeTerminal.command)}
+                      onClick={() => copyLaunchCommand(activeTerminal)}
+                    >
+                      <Copy size={13} />
+                    </button>
+                  </dd>
+                </div>
                 <div><dt>Shell</dt><dd>{activeTerminal.shell || '-'}</dd></div>
                 <div><dt>Directory</dt><dd>{activeTerminal.cwd}</dd></div>
               </dl>
