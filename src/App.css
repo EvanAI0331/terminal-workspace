@@ -12,7 +12,7 @@
   --red: #ff6b73;
   --blue: #67b7ff;
   display: grid;
-  grid-template-columns: 306px minmax(420px, 1fr) minmax(320px, 366px);
+  grid-template-columns: 292px minmax(420px, 1fr) minmax(320px, 366px);
   width: 100vw;
   height: 100vh;
   min-width: 980px;
@@ -32,13 +32,13 @@
 .sidebar {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) 40px;
+  grid-template-rows: auto minmax(0, 1fr) 34px;
   -webkit-app-region: drag;
-  padding: 52px 14px 14px;
+  padding: 44px 12px 12px;
   border-right: 1px solid var(--line);
   background:
-    radial-gradient(circle at 60% 0, rgba(60, 78, 96, 0.18), transparent 240px),
-    linear-gradient(180deg, #121922 0, #0d141b 44%, #0b1118 100%);
+    radial-gradient(circle at 70% 0, rgba(76, 126, 168, 0.14), transparent 220px),
+    linear-gradient(180deg, #111922 0, #0d141b 46%, #0b1118 100%);
 }
 
 .dot.running,
@@ -49,15 +49,15 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 8px 22px;
+  gap: 10px;
+  padding: 0 6px 14px;
 }
 
 .sidebarScroll {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 2px 12px 0;
+  padding: 0 2px 8px 0;
   -webkit-app-region: no-drag;
   scrollbar-color: rgba(174, 185, 200, 0.48) transparent;
   scrollbar-width: thin;
@@ -79,14 +79,14 @@
   border: 1px solid transparent;
   border-radius: 4px;
   background: transparent;
-  padding: 1px 3px;
+  padding: 2px 4px;
 }
 
 .brandNameInput {
   color: #35a7ff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 750;
-  line-height: 1.15;
+  line-height: 1.12;
 }
 
 .brandPathInput {
@@ -94,7 +94,8 @@
   margin-top: 3px;
   border-color: #8fd3ff;
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .brandNameInput:hover,
@@ -109,9 +110,9 @@
 }
 
 .sidebarSection {
-  margin: 20px 6px 9px;
+  margin: 14px 6px 6px;
   color: #9ba6b5;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -119,12 +120,16 @@
 .projectList,
 .quickList {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .projectGroup {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+}
+
+.projectGroup + .projectGroup {
+  margin-top: 2px;
 }
 
 button {
@@ -148,20 +153,35 @@ input {
 .projectList button,
 .quickList button,
 .quickList span {
-  height: 36px;
+  height: 32px;
   display: grid;
   grid-template-columns: 20px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
-  border-radius: 5px;
+  gap: 8px;
+  border-radius: 4px;
   background: transparent;
   color: var(--muted-2);
-  padding: 0 10px;
+  padding: 0 8px;
   text-align: left;
+  font-size: 13px;
+}
+
+.projectList button:hover,
+.quickList button:hover {
+  background: rgba(255, 255, 255, 0.045);
+  color: #eef3fa;
+}
+
+.projectList button span,
+.quickList button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .projectRoot {
-  grid-template-columns: 16px 22px minmax(0, 1fr) 16px !important;
+  grid-template-columns: 14px 20px minmax(0, 1fr) 16px !important;
   color: #f3f6fb !important;
   font-weight: 700;
 }
@@ -169,18 +189,20 @@ input {
 .projectDisclosure {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
+  overflow: visible !important;
 }
 
 .projectDelete {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
   color: #9ba6b5;
+  overflow: visible !important;
 }
 
 .projectDisclosure:hover,
@@ -193,11 +215,11 @@ input {
 }
 
 .projectRoot.collapsed {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .treeItem {
-  margin-left: 36px;
+  margin-left: 26px;
 }
 
 .projectList button.selected,
@@ -206,15 +228,16 @@ input {
 .terminalTreeItem.selected,
 .probeItem.selected {
   background: rgba(70, 82, 96, 0.52);
+  box-shadow: inset 2px 0 0 #35a7ff;
   color: #fff;
 }
 
 .terminalTreeItem,
 .probeItem {
-  height: 32px !important;
-  margin-left: 58px;
+  height: 28px !important;
+  margin-left: 42px;
   grid-template-columns: 18px minmax(0, 1fr) auto !important;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .probeRoot {
@@ -226,7 +249,7 @@ input {
 }
 
 .probeItem {
-  margin-left: 72px;
+  margin-left: 54px;
   color: var(--muted-2) !important;
 }
 
@@ -236,13 +259,13 @@ input {
 
 .quickList span {
   display: flex;
-  gap: 12px;
+  gap: 10px;
 }
 
 .sidebarHint {
-  margin: 2px 10px;
+  margin: 2px 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .quickList button i {
@@ -250,12 +273,12 @@ input {
 }
 
 .sidebarFooter {
-  height: 40px;
+  height: 34px;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   border-top: 1px solid rgba(39, 52, 66, 0.85);
-  padding-top: 12px;
+  padding-top: 8px;
 }
 
 .sidebarFooter button,
