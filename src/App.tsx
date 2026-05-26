@@ -1260,8 +1260,6 @@ function App() {
             <section className="detailSection">
               <h2>Process</h2>
               <dl className="detailTable">
-                <div><dt>Command</dt><dd>{activeTerminal.command || activeTerminal.shell || 'interactive shell'}</dd></div>
-                <div><dt>Last Command</dt><dd>{activeTerminal.lastCommand || '-'}</dd></div>
                 <div>
                   <dt>Launch Command</dt>
                   <dd className="detailValueWithAction">
