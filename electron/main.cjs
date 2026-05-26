@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, nativeImage } = require("electron");
+const { app, BrowserWindow, clipboard, ipcMain, nativeImage } = require("electron");
 const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -234,6 +234,13 @@ ipcMain.handle("app:workspace", () => ({
   cwd: process.cwd(),
   shell: process.env.SHELL || "/bin/zsh",
 }));
+
+ipcMain.handle("clipboard:read-text", () => clipboard.readText());
+
+ipcMain.handle("clipboard:write-text", (_event, text) => {
+  clipboard.writeText(String(text ?? ""));
+  return clipboard.readText();
+});
 
 ipcMain.handle("terminal:status", async (_event, id) => {
   const session = sessions.get(id);

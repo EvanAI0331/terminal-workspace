@@ -1,4 +1,4 @@
-const { clipboard, contextBridge, ipcRenderer } = require("electron");
+const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("terminalHost", {
   create: (request) => ipcRenderer.invoke("terminal:create", request),
@@ -14,11 +14,8 @@ contextBridge.exposeInMainWorld("terminalHost", {
   saveState: (state) => ipcRenderer.invoke("app:state-save", state),
   saveStateSync: (state) => ipcRenderer.sendSync("app:state-save-sync", state),
   inspectProject: (request) => ipcRenderer.invoke("project:inspect", request),
-  readClipboardText: () => clipboard.readText(),
-  writeClipboardText: (text) => {
-    clipboard.writeText(text);
-    return clipboard.readText();
-  },
+  readClipboardText: () => ipcRenderer.invoke("clipboard:read-text"),
+  writeClipboardText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
   onData: (callback) => {
     const listener = (_event, payload) => callback(payload);
     ipcRenderer.on("terminal:data", listener);

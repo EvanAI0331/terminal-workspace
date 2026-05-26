@@ -116,8 +116,8 @@ type TerminalHost = {
   saveState: (state: PersistedWorkspaceState) => Promise<{ ok: boolean; path: string }>
   saveStateSync?: (state: PersistedWorkspaceState) => { ok: boolean; path: string }
   inspectProject: (request: { cwd: string }) => Promise<ProjectInspection>
-  readClipboardText: () => string
-  writeClipboardText?: (text: string) => void
+  readClipboardText: () => Promise<string>
+  writeClipboardText?: (text: string) => Promise<string>
   onData: (callback: (payload: { id: string; data: string }) => void) => () => void
   onExit: (
     callback: (payload: { id: string; exitCode: number; signal?: number }) => void,
@@ -1074,12 +1074,17 @@ function App() {
       return
     }
     try {
+      let written = ''
       if (window.terminalHost?.writeClipboardText) {
-        window.terminalHost.writeClipboardText(command)
+        written = await window.terminalHost.writeClipboardText(command)
       } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(command)
+        written = await navigator.clipboard.readText()
       } else {
         throw new Error('Clipboard write API is unavailable.')
+      }
+      if (written !== command) {
+        throw new Error('Clipboard verification failed.')
       }
       setNotice(`Launch command copied from ${terminal.name}.`)
     } catch (error) {
