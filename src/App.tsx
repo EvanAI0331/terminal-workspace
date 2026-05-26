@@ -132,10 +132,10 @@ const makeId = (prefix: string) =>
 const defaultPath = ''
 const event = (message: string): RuntimeEvent => ({ time: Date.now(), message })
 const statusText: Record<RuntimeStatus, string> = {
-  idle: '未启动',
-  running: '运行中',
-  exited: '已退出',
-  unavailable: '不可用',
+  idle: 'Idle',
+  running: 'Running',
+  exited: 'Exited',
+  unavailable: 'Unavailable',
 }
 
 const maxTranscriptLength = 40000
@@ -212,7 +212,7 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>) =>
     Object.entries(loaded).map(([id, terminal]) => {
       const shouldRestore =
         terminal.status === 'running' ||
-        (terminal.eventLog ?? []).some((entry) => entry.message.includes('上次运行已随应用退出'))
+        (terminal.eventLog ?? []).some((entry) => entry.message.includes('Previous process ended when the app quit'))
       return [
         id,
         {
@@ -223,7 +223,7 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>) =>
         restoreOnSelect: shouldRestore || terminal.restoreOnSelect,
         eventLog:
           shouldRestore
-            ? [event('上次运行已随应用退出，需启动真实 PTY 后继续输入。'), ...(terminal.eventLog ?? [])].slice(0, 12)
+            ? [event('Previous process ended when the app quit. Start a real PTY to continue input.'), ...(terminal.eventLog ?? [])].slice(0, 12)
             : terminal.eventLog ?? [],
       },
       ]
@@ -247,7 +247,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>(() => [
     {
       id: 'project_current',
-      name: '当前工作区',
+      name: 'Current Workspace',
       path: defaultPath,
       terminalIds: [],
     },
@@ -262,7 +262,7 @@ function App() {
   const [sidebarPanel, setSidebarPanel] = useState('terminals')
   const [detailTab, setDetailTab] = useState<'details' | 'settings'>('details')
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'split'>('list')
-  const [notice, setNotice] = useState('请新建项目或添加终端。')
+  const [notice, setNotice] = useState('Create a project or add a terminal.')
   const [inspection, setInspection] = useState<ProjectInspection | null>(null)
   const [inspectionError, setInspectionError] = useState<string | null>(null)
   const [isInspecting, setIsInspecting] = useState(false)
@@ -333,7 +333,7 @@ function App() {
         if (cancelled) return
         if (!state || state.version !== 1 || !state.projects?.length) {
           setIsStateLoaded(true)
-          setNotice(`未找到已保存工作区，将创建新工作区：${path}`)
+          setNotice(`No saved workspace found. Creating a new workspace at ${path}`)
           return
         }
         const loadedTerminals = normalizeLoadedTerminals(state.terminals ?? {})
@@ -348,13 +348,13 @@ function App() {
         setViewMode(state.viewMode || 'list')
         setHasPersistedState(true)
         setIsStateLoaded(true)
-        setNotice(`已恢复已保存工作区：${path}`)
+        setNotice(`Restored saved workspace from ${path}`)
       })
       .catch((error) => {
         if (cancelled) return
         const message = error instanceof Error ? error.message : String(error)
         setIsStateLoaded(true)
-        setNotice(`读取保存状态失败：${message}`)
+        setNotice(`Failed to load saved state: ${message}`)
       })
     return () => {
       cancelled = true
@@ -365,7 +365,7 @@ function App() {
     if (!isStateLoaded) return
     if (!window.terminalHost) {
       Promise.resolve().then(() => {
-        setNotice('当前是浏览器预览，真实终端需要用 npm run dev 启动 Electron。')
+        setNotice('This is a browser preview. Start Electron with npm run dev for real terminals.')
       })
       return
     }
@@ -374,12 +374,12 @@ function App() {
       setProjects((current) =>
         current.map((project) =>
           project.id === 'project_current'
-            ? { ...project, name: workspace.cwd.split('/').filter(Boolean).at(-1) || '当前工作区', path: workspace.cwd }
+            ? { ...project, name: workspace.cwd.split('/').filter(Boolean).at(-1) || 'Current Workspace', path: workspace.cwd }
             : project,
         ),
       )
       setProjectDraft({ name: '', path: workspace.cwd })
-      setNotice(`已连接本地终端运行时：${workspace.shell}`)
+      setNotice(`Connected to local terminal runtime: ${workspace.shell}`)
     })
   }, [hasPersistedState, isStateLoaded])
 
@@ -407,7 +407,7 @@ function App() {
           status: 'exited',
           exitCode,
           eventLog: [
-            event(`进程退出：code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
+            event(`Process exited: code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
             ...(current[id]?.eventLog ?? []),
           ].slice(0, 12),
         },
@@ -424,7 +424,7 @@ function App() {
     const timer = window.setTimeout(() => {
       window.terminalHost?.saveState({ ...persistedState, savedAt: Date.now() }).catch((error) => {
         const message = error instanceof Error ? error.message : String(error)
-        setNotice(`保存工作区失败：${message}`)
+        setNotice(`Failed to save workspace: ${message}`)
       })
     }, 350)
     return () => window.clearTimeout(timer)
@@ -480,7 +480,7 @@ function App() {
           })
           .catch((error) => {
             const message = error instanceof Error ? error.message : String(error)
-            setNotice(`终端目录同步失败：${message}`)
+            setNotice(`Failed to sync terminal directory: ${message}`)
           })
       }
     }, 2500)
@@ -510,7 +510,7 @@ function App() {
         if (cancelled || !result || result.cwd !== scanPath) return
         setInspection(result)
         setNotice(
-          `已深度扫描 ${result.scan?.fileCount ?? 0} 个文件，识别 ${result.scan?.projectRoots.length ?? 1} 个项目根${result.warnings?.length ? `，${result.warnings.length} 条警告` : ''}。`,
+          `Deep scan complete: ${result.scan?.fileCount ?? 0} files, ${result.scan?.projectRoots.length ?? 1} project root${result.warnings?.length ? `, ${result.warnings.length} warning(s)` : ''}.`,
         )
       })
       .catch((error) => {
@@ -518,7 +518,7 @@ function App() {
         const message = error instanceof Error ? error.message : String(error)
         setInspection(null)
         setInspectionError(message)
-        setNotice(`项目扫描失败：${message}`)
+        setNotice(`Project scan failed: ${message}`)
       })
       .finally(() => {
         if (!cancelled) setIsInspecting(false)
@@ -529,7 +529,7 @@ function App() {
   }, [activeProject.path])
 
   const createProject = () => {
-    const name = projectDraft.name.trim() || `项目 ${projects.length + 1}`
+    const name = projectDraft.name.trim() || `Project ${projects.length + 1}`
     const id = makeId('project')
     const projectPath = projectDraft.path.trim() || activeProject.path || defaultPath
     const project: Project = {
@@ -543,13 +543,13 @@ function App() {
     setExpandedProjectIds((current) => [...new Set([...current, id])])
     setActiveTerminalId(null)
     setProjectDraft({ name: '', path: project.path })
-    setNotice(`已创建项目：${name}`)
+    setNotice(`Created project: ${name}`)
   }
 
   const addTerminal = async () => {
     const id = makeId('terminal')
     let cwd = activeProject.path
-    const name = `终端 ${activeProject.terminalIds.length + 1}`
+    const name = `Terminal ${activeProject.terminalIds.length + 1}`
 
     if (!cwd && window.terminalHost) {
       try {
@@ -562,7 +562,7 @@ function App() {
         )
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        setNotice(`读取工作区目录失败：${message}`)
+        setNotice(`Failed to read workspace directory: ${message}`)
       }
     }
 
@@ -594,9 +594,9 @@ function App() {
     if (!window.terminalHost) {
       attachTerminal({
         ...terminal,
-        eventLog: [event('Electron preload 不可用；请使用 npm run dev 启动桌面端。')],
+        eventLog: [event('Electron preload is unavailable. Start the desktop app with npm run dev.')],
       })
-      setNotice('未连接 Electron 运行时，无法创建真实终端。')
+      setNotice('Electron runtime is not connected. Cannot create a real terminal.')
       return
     }
 
@@ -609,17 +609,17 @@ function App() {
         shell: runtime.shell,
         cwd: runtime.cwd,
         createdAt: runtime.createdAt,
-        eventLog: [event(`已启动真实 PTY，PID ${runtime.pid}`)],
+        eventLog: [event(`Started real PTY, PID ${runtime.pid}`)],
       })
-      setNotice(`已添加终端：${name}`)
+      setNotice(`Added terminal: ${name}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       attachTerminal({
         ...terminal,
         status: 'exited',
-        eventLog: [event(`启动失败：${message}`)],
+        eventLog: [event(`Start failed: ${message}`)],
       })
-      setNotice(`终端启动失败：${message}`)
+      setNotice(`Terminal start failed: ${message}`)
     }
   }
 
@@ -630,15 +630,15 @@ function App() {
       [id]: {
         ...current[id],
         status: 'exited',
-        eventLog: [event('已请求停止进程'), ...(current[id]?.eventLog ?? [])].slice(0, 12),
+        eventLog: [event('Stop requested'), ...(current[id]?.eventLog ?? [])].slice(0, 12),
       },
     }))
-    setNotice('已发送停止请求。')
+    setNotice('Stop request sent.')
   }
 
   const startTerminal = useCallback(async (terminal: TerminalModel) => {
     if (!window.terminalHost) {
-      setNotice('未连接 Electron 运行时，无法启动终端。')
+      setNotice('Electron runtime is not connected. Cannot start terminal.')
       return false
     }
     if (terminal.status === 'running') {
@@ -666,14 +666,14 @@ function App() {
           exitCode: null,
           restoreOnSelect: false,
           eventLog: [
-            event(`已启动真实 PTY，PID ${runtime.pid}`),
+            event(`Started real PTY, PID ${runtime.pid}`),
             ...(current[terminal.id]?.eventLog ?? []),
           ].slice(0, 12),
         },
       }))
       setActiveTerminalId(terminal.id)
       setSidebarPanel('terminals')
-      setNotice(`已启动终端：${terminal.name}`)
+      setNotice(`Started terminal: ${terminal.name}`)
       return true
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -682,10 +682,10 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           status: 'exited',
-          eventLog: [event(`启动失败：${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
+          eventLog: [event(`Start failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
-      setNotice(`终端启动失败：${message}`)
+      setNotice(`Terminal start failed: ${message}`)
       return false
     }
   }, [])
@@ -700,12 +700,12 @@ function App() {
 
   const rerunTerminal = async (terminal: TerminalModel) => {
     if (!window.terminalHost) {
-      setNotice('未连接 Electron 运行时，无法重新执行。')
+      setNotice('Electron runtime is not connected. Cannot rerun command.')
       return
     }
     const command = terminal.lastCommand?.trim()
     if (!command) {
-      setNotice('该终端没有可重新执行的历史命令。')
+      setNotice('This terminal has no previous command to rerun.')
       return
     }
 
@@ -716,10 +716,10 @@ function App() {
           ...current,
           [terminal.id]: {
             ...updateInputState(current[terminal.id], `${command}\r`),
-            eventLog: [event(`重新执行：${command}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
+            eventLog: [event(`Rerun: ${command}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
           },
         }))
-        setNotice(`已重新执行：${command}`)
+        setNotice(`Rerun: ${command}`)
         return
       }
 
@@ -731,14 +731,14 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           eventLog: [
-            event(`重新执行：${command}`),
+            event(`Rerun: ${command}`),
             ...(current[terminal.id]?.eventLog ?? []),
           ].slice(0, 12),
         },
       }))
       setActiveTerminalId(terminal.id)
       setSidebarPanel('terminals')
-      setNotice(`已恢复并重新执行：${command}`)
+      setNotice(`Restored and reran: ${command}`)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       setTerminals((current) => ({
@@ -746,10 +746,10 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           status: 'exited',
-          eventLog: [event(`重新执行失败：${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
+          eventLog: [event(`Rerun failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
-      setNotice(`重新执行失败：${message}`)
+      setNotice(`Rerun failed: ${message}`)
     }
   }
 
@@ -771,7 +771,7 @@ function App() {
       const nextId = activeProject.terminalIds.find((terminalId) => terminalId !== id) ?? null
       setActiveTerminalId(nextId)
     }
-    setNotice('已关闭终端。')
+    setNotice('Terminal closed.')
   }
 
   const renameProject = (id: string, name: string) => {
@@ -813,7 +813,7 @@ function App() {
 
     const fallbackProject: Project = {
       id: 'project_current',
-      name: '当前工作区',
+      name: 'Current Workspace',
       path: projectDraft.path || defaultPath,
       terminalIds: [],
     }
@@ -848,14 +848,14 @@ function App() {
       expandedProbeProjectIds: expandedProbeProjectIds.filter((projectId) => projectId !== project.id),
       sidebarPanel: 'terminals',
     })
-    setNotice(`已删除项目：${project.name}`)
+    setNotice(`Deleted project: ${project.name}`)
   }
 
   const selectProject = (project: Project) => {
     setActiveProjectId(project.id)
     setExpandedProjectIds((current) => [...new Set([...current, project.id])])
     setActiveTerminalId(project.terminalIds[0] ?? null)
-    setNotice(`已切换项目：${project.name}`)
+    setNotice(`Switched project: ${project.name}`)
   }
 
   const toggleProject = (id: string) => {
@@ -875,7 +875,7 @@ function App() {
     setExpandedProjectIds((current) => [...new Set([...current, terminal.projectId])])
     setSidebarPanel('terminals')
     setActiveTerminalId(terminal.id)
-    setNotice(`已切换到终端：${terminal.name}`)
+    setNotice(`Switched to terminal: ${terminal.name}`)
   }
 
   const renderProjectPanel = () => {
@@ -883,7 +883,7 @@ function App() {
 
     if (sidebarPanel === 'terminals') {
       if (!activeTerminals.length) {
-        return <PanelEmpty title={activeProject.name} text="点击“添加终端”创建真实交互 shell。" />
+        return <PanelEmpty title={activeProject.name} text="Click Add Terminal to create a real interactive shell." />
       }
       return activeTerminals.map((terminal) => (
         <TerminalCard
@@ -914,10 +914,10 @@ function App() {
       ))
     }
 
-    if (!activeProject.path) return <PanelEmpty title="未设置目录" text="请先为当前项目设置真实目录。" />
-    if (isInspecting) return <PanelEmpty title="正在扫描" text={activeProject.path} />
-    if (inspectionError) return <PanelEmpty title="扫描失败" text={inspectionError} />
-    if (!activeInspection) return <PanelEmpty title="未扫描" text="没有当前项目的扫描结果。" />
+    if (!activeProject.path) return <PanelEmpty title="No Project Path" text="Set a real project path for the current project first." />
+    if (isInspecting) return <PanelEmpty title="Scanning" text={activeProject.path} />
+    if (inspectionError) return <PanelEmpty title="Scan Failed" text={inspectionError} />
+    if (!activeInspection) return <PanelEmpty title="Not Scanned" text="No scan result is available for the current project." />
 
     if (sidebarPanel === 'services') {
       return activeInspection.services.length ? (
@@ -931,7 +931,7 @@ function App() {
             />
           ))}
         </div>
-      ) : <PanelEmpty title="未发现服务" text="深度扫描内未发现 package.json、pyproject 或 Docker Compose 服务入口。" />
+      ) : <PanelEmpty title="No Services Found" text="No package.json, pyproject, or Docker Compose service entry was found." />
     }
 
     if (sidebarPanel === 'env') {
@@ -942,11 +942,11 @@ function App() {
               key={`${entry.source}-${entry.key}`}
               title={entry.key}
               meta={formatResourceMeta(entry)}
-              value={entry.masked ? '敏感值已隐藏' : entry.value}
+              value={entry.masked ? 'Sensitive value hidden' : entry.value}
             />
           ))}
         </div>
-      ) : <PanelEmpty title="未发现环境配置" text="深度扫描内未发现 .env、.env.local 或其他 .env.* 文件。" />
+      ) : <PanelEmpty title="No Environment Files" text="No .env, .env.local, or .env.* files were found." />
     }
 
     if (sidebarPanel === 'tasks') {
@@ -961,7 +961,7 @@ function App() {
             />
           ))}
         </div>
-      ) : <PanelEmpty title="未发现任务" text="深度扫描内未发现 workflows、Taskfile、justfile、Makefile 或构建系统入口。" />
+      ) : <PanelEmpty title="No Tasks Found" text="No workflows, Taskfile, justfile, Makefile, or build-system entry was found." />
     }
 
     if (sidebarPanel === 'notes') {
@@ -976,7 +976,7 @@ function App() {
             />
           ))}
         </div>
-      ) : <PanelEmpty title="未发现笔记" text="深度扫描内未发现 markdown 文件。" />
+      ) : <PanelEmpty title="No Notes Found" text="No markdown files were found." />
     }
 
     return null
@@ -991,21 +991,21 @@ function App() {
             <input
               className="brandNameInput"
               value={activeProject.name}
-              aria-label="项目名"
+              aria-label="Project name"
               onChange={(change) => renameProject(activeProject.id, change.target.value)}
             />
             <input
               className="brandPathInput"
               value={activeProject.path}
-              aria-label="项目目录"
-              placeholder="目录未连接"
+              aria-label="Project path"
+              placeholder="No path connected"
               onChange={(change) => renameProjectPath(activeProject.id, change.target.value)}
             />
           </div>
         </div>
 
         <div className="sidebarScroll">
-          <div className="sidebarSection">项目</div>
+          <div className="sidebarSection">Projects</div>
           <nav className="projectList" aria-label="Projects">
             {projects.map((project) => {
               const isActiveProject = project.id === activeProject.id
@@ -1045,7 +1045,7 @@ function App() {
                       className="projectDelete"
                       role="button"
                       tabIndex={0}
-                      aria-label={`删除项目 ${project.name}`}
+                      aria-label={`Delete project ${project.name}`}
                       onClick={(event) => {
                         event.stopPropagation()
                         deleteProject(project)
@@ -1069,11 +1069,11 @@ function App() {
                         onClick={() => {
                           selectProject(project)
                           setSidebarPanel('terminals')
-                          setNotice('已切换到终端列表。')
+                          setNotice('Showing terminal list.')
                         }}
                       >
                         <TerminalSquare size={17} />
-                        <span>终端</span>
+                        <span>Terminals</span>
                       </button>
                       {projectTerminals.map((terminal, index) => (
                         <button
@@ -1083,7 +1083,7 @@ function App() {
                           onClick={() => selectRecentTerminal(terminal)}
                         >
                           <TerminalSquare size={15} />
-                          <span>{terminal.name || `终端 ${index + 1}`}</span>
+                          <span>{terminal.name || `Terminal ${index + 1}`}</span>
                           <i className={`dot ${terminal.status}`} />
                         </button>
                       ))}
@@ -1093,29 +1093,29 @@ function App() {
                         onClick={() => {
                           selectProject(project)
                           toggleProjectProbe(project.id)
-                          setNotice(isProbeExpanded ? '已折叠项目探测。' : '已展开项目探测。')
+                          setNotice(isProbeExpanded ? 'Collapsed project inspection.' : 'Expanded project inspection.')
                         }}
                       >
                         {isProbeExpanded ? <ChevronDown size={17} /> : <ChevronsRight size={17} />}
-                        <span>项目探测</span>
+                        <span>Project Inspector</span>
                       </button>
                       {isProbeExpanded ? (
                         <>
-                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'services' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('services'); setNotice('已显示项目服务探测结果。') }}>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'services' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('services'); setNotice('Showing service inspection results.') }}>
                             <Server size={16} />
-                            <span>服务</span>
+                            <span>Services</span>
                           </button>
-                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'env' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('env'); setNotice('已显示项目环境探测结果。') }}>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'env' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('env'); setNotice('Showing environment inspection results.') }}>
                             <Settings size={16} />
-                            <span>环境</span>
+                            <span>Environment</span>
                           </button>
-                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'tasks' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('tasks'); setNotice('已显示项目任务探测结果。') }}>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'tasks' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('tasks'); setNotice('Showing task inspection results.') }}>
                             <ChevronsRight size={16} />
-                            <span>任务</span>
+                            <span>Tasks</span>
                           </button>
-                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'notes' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('notes'); setNotice('已显示项目笔记探测结果。') }}>
+                          <button type="button" className={`probeItem ${isActiveProject && sidebarPanel === 'notes' ? 'selected' : ''}`} onClick={() => { selectProject(project); setSidebarPanel('notes'); setNotice('Showing note inspection results.') }}>
                             <List size={16} />
-                            <span>笔记</span>
+                            <span>Notes</span>
                           </button>
                         </>
                       ) : null}
@@ -1125,7 +1125,7 @@ function App() {
               )
             })}
           </nav>
-          <div className="sidebarSection">最近终端</div>
+          <div className="sidebarSection">Recent Terminals</div>
           <div className="quickList" aria-label="Recent terminals">
             {recentTerminals.length ? recentTerminals.map((terminal) => (
               <button
@@ -1138,12 +1138,12 @@ function App() {
                 <span>{terminal.name}</span>
                 <i className={`dot ${terminal.status}`} />
               </button>
-            )) : <p className="sidebarHint">还没有真实终端。</p>}
+            )) : <p className="sidebarHint">No real terminals yet.</p>}
           </div>
         </div>
         <div className="sidebarFooter">
           <button type="button" aria-label="New project" onClick={createProject}><Plus size={18} /></button>
-          <button type="button" aria-label="Filter" onClick={() => setNotice('筛选只会作用于真实终端列表。')}><Filter size={18} /></button>
+          <button type="button" aria-label="Filter" onClick={() => setNotice('Filters apply only to the real terminal list.')}><Filter size={18} /></button>
         </div>
       </aside>
 
@@ -1151,27 +1151,27 @@ function App() {
         <header className="toolbar">
           <button type="button" className="toolbarButton" onClick={createProject}>
             <Plus size={17} />
-            新建项目
+            New Project
             <ChevronDown size={14} />
           </button>
           <button type="button" className="toolbarButton" onClick={addTerminal}>
             <Plus size={17} />
-            添加终端
+            Add Terminal
             <ChevronDown size={14} />
           </button>
           <div className="viewSwitcher" aria-label="View switcher">
-            <button type="button" className={viewMode === 'grid' ? 'selected' : ''} onClick={() => { setViewMode('grid'); setNotice('已切换网格视图。') }}><Grid3X3 size={16} /></button>
-            <button type="button" className={viewMode === 'list' ? 'selected' : ''} onClick={() => { setViewMode('list'); setNotice('已切换列表视图。') }}><List size={16} /></button>
-            <button type="button" className={viewMode === 'split' ? 'selected' : ''} onClick={() => { setViewMode('split'); setNotice('已切换分屏视图。') }}><Grid3X3 size={16} /></button>
+            <button type="button" className={viewMode === 'grid' ? 'selected' : ''} onClick={() => { setViewMode('grid'); setNotice('Switched to grid view.') }}><Grid3X3 size={16} /></button>
+            <button type="button" className={viewMode === 'list' ? 'selected' : ''} onClick={() => { setViewMode('list'); setNotice('Switched to list view.') }}><List size={16} /></button>
+            <button type="button" className={viewMode === 'split' ? 'selected' : ''} onClick={() => { setViewMode('split'); setNotice('Switched to split view.') }}><Grid3X3 size={16} /></button>
           </div>
-          <button type="button" className="searchBox" onClick={() => setNotice('搜索将基于真实终端名称、目录和 PID。')}>
+          <button type="button" className="searchBox" onClick={() => setNotice('Search will use real terminal names, directories, and PIDs.')}>
             <Search size={16} />
-            <span>搜索终端...</span>
+            <span>Search terminals...</span>
             <kbd>⌘K</kbd>
           </button>
           <div className="toolbarIcons">
-            <button type="button" aria-label="通知" onClick={() => setNotice('暂无运行时通知。')}><Bell size={18} /></button>
-            <button type="button" aria-label="设置" onClick={() => setDetailTab('settings')}><Settings size={18} /></button>
+            <button type="button" aria-label="Notifications" onClick={() => setNotice('No runtime notifications.')}><Bell size={18} /></button>
+            <button type="button" aria-label="Settings" onClick={() => setDetailTab('settings')}><Settings size={18} /></button>
           </div>
         </header>
 
@@ -1220,32 +1220,32 @@ function App() {
                 <strong>{activeTerminal.name}</strong>
                 <span>{activeTerminal.role}</span>
               </div>
-              <button type="button" className="detailIcon" onClick={() => setNotice('右侧详情已保持展开。')}><ChevronsRight size={17} /></button>
+              <button type="button" className="detailIcon" onClick={() => setNotice('Details panel remains expanded.')}><ChevronsRight size={17} /></button>
               <button type="button" className="detailIcon" onClick={() => setActiveTerminalId(null)}><X size={17} /></button>
             </div>
             <div className="detailTabs">
-              <button type="button" className={detailTab === 'details' ? 'selected' : ''} onClick={() => setDetailTab('details')}>详情</button>
-              <button type="button" className={detailTab === 'settings' ? 'selected' : ''} onClick={() => setDetailTab('settings')}>设置</button>
+              <button type="button" className={detailTab === 'details' ? 'selected' : ''} onClick={() => setDetailTab('details')}>Details</button>
+              <button type="button" className={detailTab === 'settings' ? 'selected' : ''} onClick={() => setDetailTab('settings')}>Settings</button>
             </div>
             {detailTab === 'details' ? (
             <>
             <section className="detailSection">
-              <h2>状态</h2>
+              <h2>Status</h2>
               <dl className="detailTable">
-                <div><dt>状态</dt><dd className={activeTerminal.status === 'running' ? 'greenText' : ''}>{statusText[activeTerminal.status]}</dd></div>
+                <div><dt>Status</dt><dd className={activeTerminal.status === 'running' ? 'greenText' : ''}>{statusText[activeTerminal.status]}</dd></div>
                 <div><dt>PID</dt><dd>{activeTerminal.pid ?? '-'}</dd></div>
-                <div><dt>运行时间</dt><dd>{formatUptime(activeTerminal.createdAt, activeTerminal.status)}</dd></div>
-                <div><dt>启动时间</dt><dd>{formatDateTime(activeTerminal.createdAt)}</dd></div>
-                <div><dt>退出码</dt><dd>{activeTerminal.exitCode ?? '-'}</dd></div>
+                <div><dt>Uptime</dt><dd>{formatUptime(activeTerminal.createdAt, activeTerminal.status)}</dd></div>
+                <div><dt>Started</dt><dd>{formatDateTime(activeTerminal.createdAt)}</dd></div>
+                <div><dt>Exit Code</dt><dd>{activeTerminal.exitCode ?? '-'}</dd></div>
               </dl>
             </section>
             <section className="detailSection">
-              <h2>进程</h2>
+              <h2>Process</h2>
               <dl className="detailTable">
-                <div><dt>命令</dt><dd>{activeTerminal.command || activeTerminal.shell || 'interactive shell'}</dd></div>
-                <div><dt>上次命令</dt><dd>{activeTerminal.lastCommand || '-'}</dd></div>
+                <div><dt>Command</dt><dd>{activeTerminal.command || activeTerminal.shell || 'interactive shell'}</dd></div>
+                <div><dt>Last Command</dt><dd>{activeTerminal.lastCommand || '-'}</dd></div>
                 <div><dt>Shell</dt><dd>{activeTerminal.shell || '-'}</dd></div>
-                <div><dt>目录</dt><dd>{activeTerminal.cwd}</dd></div>
+                <div><dt>Directory</dt><dd>{activeTerminal.cwd}</dd></div>
               </dl>
               <button
                 type="button"
@@ -1253,11 +1253,11 @@ function App() {
                 disabled={!activeTerminal.lastCommand}
                 onClick={() => rerunTerminal(activeTerminal)}
               >
-                重新执行上次命令
+                Rerun Last Command
               </button>
             </section>
             <section className="detailSection">
-              <h2>最近事件</h2>
+              <h2>Recent Events</h2>
               <div className="eventTimeline">
                 {activeTerminal.eventLog.map((event, index) => (
                   <div key={`${event.message}-${index}`}>
@@ -1267,35 +1267,35 @@ function App() {
                   </div>
                 ))}
               </div>
-              <button type="button" className="historyLink" onClick={() => setNotice('完整历史需要接入持久化事件库。')}>查看完整历史 <ChevronsRight size={14} /></button>
+              <button type="button" className="historyLink" onClick={() => setNotice('Full history requires a persistent event store.')}>View Full History <ChevronsRight size={14} /></button>
             </section>
             </>
             ) : (
               <section className="detailSection">
-                <h2>终端设置</h2>
+                <h2>Terminal Settings</h2>
                 <dl className="detailTable">
                   <div>
-                    <dt>名称</dt>
+                    <dt>Name</dt>
                     <dd>
                       <input
                         className="detailInput"
                         value={activeTerminal.name}
-                        aria-label="终端名"
+                        aria-label="Terminal name"
                         onChange={(change) => renameTerminal(activeTerminal.id, change.target.value)}
                       />
                     </dd>
                   </div>
-                  <div><dt>Shell</dt><dd>{activeTerminal.shell || '未启动'}</dd></div>
-                  <div><dt>目录</dt><dd>{activeTerminal.cwd || '-'}</dd></div>
+                  <div><dt>Shell</dt><dd>{activeTerminal.shell || 'Not started'}</dd></div>
+                  <div><dt>Directory</dt><dd>{activeTerminal.cwd || '-'}</dd></div>
                 </dl>
-                <button type="button" className="showAll" onClick={() => stopTerminal(activeTerminal.id)} disabled={activeTerminal.status !== 'running'}>停止进程</button>
+                <button type="button" className="showAll" onClick={() => stopTerminal(activeTerminal.id)} disabled={activeTerminal.status !== 'running'}>Stop Process</button>
               </section>
             )}
           </>
         ) : (
           <div className="detailsEmpty">
             <Play size={28} />
-            <p>选择或创建一个终端后显示进程、目录、状态和事件。</p>
+            <p>Select or create a terminal to view process, directory, status, and events.</p>
           </div>
         )}
       </aside>
@@ -1378,7 +1378,7 @@ function TerminalCard({
       <button
         type="button"
         className="terminalResizeHandle"
-        aria-label={`调整 ${terminal.name} 高度`}
+        aria-label={`Resize ${terminal.name} height`}
         onPointerDown={startResize}
       />
     </article>
