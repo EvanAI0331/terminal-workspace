@@ -150,22 +150,32 @@ const pastedCommandSuffix = '\u0007'
 const isRememberCommandEvent = (data: string) =>
   data.startsWith(pastedCommandPrefix) && data.endsWith(pastedCommandSuffix)
 
+const normalizeStoredCommand = (value: string | undefined) =>
+  (value ?? '')
+    .replaceAll('\u001b[200~', '')
+    .replaceAll('\u001b[201~', '')
+    .replaceAll('[200~', '')
+    .replaceAll('[201~', '')
+    .replace(/\r\n|\r/g, '\n')
+    .trim()
+
 const commandLinesFromInput = (data: string) =>
-  data
+  normalizeStoredCommand(data)
     .split(/\r\n|\r|\n/)
     .map((line) => line.trim())
     .filter(Boolean)
 
 const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
-  const commandLines = commandLinesFromInput(data)
+  const stateData = normalizeStoredCommand(data)
+  const commandLines = commandLinesFromInput(stateData)
   const isCommandBlockInput = commandLines.length > 1
   let buffer = terminal.inputBuffer ?? ''
   let lastCommand = terminal.lastCommand
   let command = terminal.command
 
-  if (isRememberCommandEvent(data)) {
-    const encoded = data.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
-    const pastedCommand = decodeURIComponent(encoded)
+  if (isRememberCommandEvent(stateData)) {
+    const encoded = stateData.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
+    const pastedCommand = normalizeStoredCommand(decodeURIComponent(encoded))
     return {
       ...terminal,
       inputBuffer: pastedCommand,
@@ -184,7 +194,7 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
     }
   }
 
-  for (const char of data) {
+  for (const char of stateData) {
     if (char === '\r' || char === '\n') {
       const trimmed = buffer.trim()
       if (trimmed) {
@@ -887,7 +897,7 @@ function App() {
   }
 
   const copyLaunchCommand = (terminal: TerminalModel) => {
-    const command = terminal.lastCommand || terminal.command
+    const command = normalizeStoredCommand(terminal.lastCommand || terminal.command)
     if (!command) {
       setNotice('No launch command is available for this terminal.')
       return
@@ -914,6 +924,7 @@ function App() {
         >
           <TerminalPane
             terminal={terminal}
+            onFocus={() => setActiveTerminalId(terminal.id)}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
               const shouldWriteToPty = !isRememberCommandEvent(data)
@@ -1263,12 +1274,12 @@ function App() {
                 <div>
                   <dt>Launch Command</dt>
                   <dd className="detailValueWithAction">
-                    <span>{activeTerminal.lastCommand || activeTerminal.command || '-'}</span>
+                    <span>{normalizeStoredCommand(activeTerminal.lastCommand || activeTerminal.command) || '-'}</span>
                     <button
                       type="button"
                       className="inlineCopyButton"
                       aria-label="Copy launch command"
-                      disabled={!(activeTerminal.lastCommand || activeTerminal.command)}
+                      disabled={!normalizeStoredCommand(activeTerminal.lastCommand || activeTerminal.command)}
                       onClick={() => copyLaunchCommand(activeTerminal)}
                     >
                       <Copy size={13} />
@@ -1418,10 +1429,12 @@ function TerminalCard({
 
 function TerminalPane({
   terminal,
+  onFocus,
   onInput,
   onResize,
 }: {
   terminal: TerminalModel
+  onFocus: () => void
   onInput: (data: string) => void
   onResize: (cols: number, rows: number) => void
 }) {
@@ -1530,7 +1543,16 @@ function TerminalPane({
     )
   }
 
-  return <div ref={containerRef} className="xtermHost" onMouseDown={() => termRef.current?.focus()} />
+  return (
+    <div
+      ref={containerRef}
+      className="xtermHost"
+      onMouseDown={() => {
+        onFocus()
+        termRef.current?.focus()
+      }}
+    />
+  )
 }
 
 function PanelEmpty({ title, text }: { title: string; text: string }) {
