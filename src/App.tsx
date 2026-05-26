@@ -174,7 +174,52 @@ const commandLinesFromInput = (data: string) =>
     .map((line) => line.trim())
     .filter(Boolean)
 
-const updateInputState = (terminal: TerminalModel, data: string): TerminalModel => {
+const normalizePathForCompare = (value: string | undefined) =>
+  (value ?? '').trim().replace(/\/+$/, '')
+
+const isPathWithinRoot = (candidate: string, root: string) => {
+  const normalizedCandidate = normalizePathForCompare(candidate)
+  const normalizedRoot = normalizePathForCompare(root)
+  return Boolean(
+    normalizedCandidate &&
+      normalizedRoot &&
+      (normalizedCandidate === normalizedRoot || normalizedCandidate.startsWith(`${normalizedRoot}/`)),
+  )
+}
+
+const firstCdPath = (command: string) => {
+  const line = commandLinesFromInput(command).find((entry) => entry.startsWith('cd '))
+  if (!line) return null
+  const match = line.match(/^cd\s+(?:"([^"]+)"|'([^']+)'|([^\s;&|]+))/)
+  return match?.[1] ?? match?.[2] ?? match?.[3] ?? null
+}
+
+const commandBelongsToTerminal = (
+  terminal: Pick<TerminalModel, 'cwd'>,
+  command: string | undefined,
+  projectPath: string | undefined,
+) => {
+  const normalizedCommand = normalizeStoredCommand(command)
+  if (!normalizedCommand) return true
+  const targetPath = firstCdPath(normalizedCommand)
+  if (!targetPath || !targetPath.startsWith('/')) return true
+  const root = normalizePathForCompare(projectPath) || normalizePathForCompare(terminal.cwd)
+  return isPathWithinRoot(targetPath, root)
+}
+
+const visibleLaunchCommand = (
+  terminal: TerminalModel,
+  projectPath: string | undefined,
+) => {
+  const command = normalizeStoredCommand(terminal.lastCommand || terminal.command)
+  return commandBelongsToTerminal(terminal, command, projectPath) ? command : ''
+}
+
+const updateInputState = (
+  terminal: TerminalModel,
+  data: string,
+  projectPath?: string,
+): TerminalModel => {
   const stateData = normalizeStoredCommand(data)
   const commandLines = commandLinesFromInput(stateData)
   const isCommandBlockInput = commandLines.length > 1
@@ -185,6 +230,12 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
   if (isRememberCommandEvent(stateData)) {
     const encoded = stateData.slice(pastedCommandPrefix.length, -pastedCommandSuffix.length)
     const pastedCommand = normalizeStoredCommand(decodeURIComponent(encoded))
+    if (!commandBelongsToTerminal(terminal, pastedCommand, projectPath)) {
+      return {
+        ...terminal,
+        inputBuffer: '',
+      }
+    }
     return {
       ...terminal,
       inputBuffer: pastedCommand,
@@ -195,6 +246,12 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
 
   if (isCommandBlockInput) {
     const commandBlock = commandLines.join('\n')
+    if (!commandBelongsToTerminal(terminal, commandBlock, projectPath)) {
+      return {
+        ...terminal,
+        inputBuffer: '',
+      }
+    }
     return {
       ...terminal,
       inputBuffer: '',
@@ -207,8 +264,10 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
     if (char === '\r' || char === '\n') {
       const trimmed = buffer.trim()
       if (trimmed) {
-        lastCommand = trimmed
-        command = trimmed
+        if (commandBelongsToTerminal(terminal, trimmed, projectPath)) {
+          lastCommand = trimmed
+          command = trimmed
+        }
       }
       buffer = ''
     } else if (char === '\u0003' || char === '\u0015') {
@@ -228,33 +287,70 @@ const updateInputState = (terminal: TerminalModel, data: string): TerminalModel 
   }
 }
 
-const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>) =>
-  Object.fromEntries(
+const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, projects: Project[]) => {
+  const projectPaths = new Map(projects.map((project) => [project.id, project.path]))
+  return Object.fromEntries(
     Object.entries(loaded).map(([id, terminal]) => {
       const shouldRestore =
         terminal.status === 'running' ||
         (terminal.eventLog ?? []).some((entry) => entry.message.includes('Previous process ended when the app quit'))
+      const projectPath = projectPaths.get(terminal.projectId)
+      const commandIsValid = commandBelongsToTerminal(
+        terminal,
+        terminal.lastCommand || terminal.command,
+        projectPath,
+      )
       return [
         id,
         {
-        ...terminal,
-        status: shouldRestore ? 'idle' : terminal.status,
-        busy: false,
-        pid: undefined,
-        exitCode: shouldRestore ? null : terminal.exitCode,
-        restoreOnSelect: shouldRestore || terminal.restoreOnSelect,
-        eventLog:
-          shouldRestore
-            ? [event('Previous process ended when the app quit. Start a real PTY to continue input.'), ...(terminal.eventLog ?? [])].slice(0, 12)
-            : terminal.eventLog ?? [],
-      },
+          ...terminal,
+          command: commandIsValid ? terminal.command : '',
+          lastCommand: commandIsValid ? terminal.lastCommand : undefined,
+          status: shouldRestore ? 'idle' : terminal.status,
+          busy: false,
+          pid: undefined,
+          exitCode: shouldRestore ? null : terminal.exitCode,
+          restoreOnSelect: shouldRestore || terminal.restoreOnSelect,
+          eventLog:
+            shouldRestore
+              ? [event('Previous process ended when the app quit. Start a real PTY to continue input.'), ...(terminal.eventLog ?? [])].slice(0, 12)
+              : terminal.eventLog ?? [],
+        },
       ]
     }),
   ) as Record<string, TerminalModel>
+}
 
-const compactTerminalsForSave = (current: Record<string, TerminalModel>) =>
+const sanitizeTerminalCommands = (
+  current: Record<string, TerminalModel>,
+  projects: Project[],
+) => {
+  const projectPaths = new Map(projects.map((project) => [project.id, project.path]))
+  let changed = false
+  const next = Object.fromEntries(
+    Object.entries(current).map(([id, terminal]) => {
+      const projectPath = projectPaths.get(terminal.projectId)
+      if (commandBelongsToTerminal(terminal, terminal.lastCommand || terminal.command, projectPath)) {
+        return [id, terminal]
+      }
+      changed = true
+      return [
+        id,
+        {
+          ...terminal,
+          command: '',
+          lastCommand: undefined,
+          inputBuffer: '',
+        },
+      ]
+    }),
+  ) as Record<string, TerminalModel>
+  return changed ? next : current
+}
+
+const compactTerminalsForSave = (current: Record<string, TerminalModel>, projects: Project[]) =>
   Object.fromEntries(
-    Object.entries(current)
+    Object.entries(sanitizeTerminalCommands(current, projects))
       .filter(([, terminal]) => Boolean(terminal.projectId))
       .map(([id, terminal]) => [
         id,
@@ -320,7 +416,7 @@ function App() {
     () => ({
       version: 1,
       projects,
-      terminals: compactTerminalsForSave(terminals),
+      terminals: compactTerminalsForSave(terminals, projects),
       activeProjectId,
       activeTerminalId,
       expandedProjectIds,
@@ -368,7 +464,7 @@ function App() {
           setNotice(`No saved workspace found. Creating a new workspace at ${path}`)
           return
         }
-        const loadedTerminals = normalizeLoadedTerminals(state.terminals ?? {})
+        const loadedTerminals = normalizeLoadedTerminals(state.terminals ?? {}, state.projects)
         setProjects(state.projects)
         setTerminals(loadedTerminals)
         setActiveProjectId(state.activeProjectId)
@@ -793,7 +889,8 @@ function App() {
       setNotice('Electron runtime is not connected. Cannot rerun command.')
       return
     }
-    const command = terminal.lastCommand?.trim()
+    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
+    const command = visibleLaunchCommand(terminal, projectPath)
     if (!command) {
       setNotice('This terminal has no previous command to rerun.')
       return
@@ -805,7 +902,7 @@ function App() {
         setTerminals((current) => ({
           ...current,
           [terminal.id]: {
-            ...updateInputState(current[terminal.id], `${command}\r`),
+            ...updateInputState(current[terminal.id], `${command}\r`, activeProject.path),
             eventLog: [event(`Rerun: ${command}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
           },
         }))
@@ -930,7 +1027,7 @@ function App() {
     setSidebarPanel('terminals')
     saveStateImmediately({
       projects: nextProjects,
-      terminals: compactTerminalsForSave(nextTerminals),
+      terminals: compactTerminalsForSave(nextTerminals, nextProjects),
       activeProjectId: nextActiveProject.id,
       activeTerminalId: nextActiveProject.terminalIds[0] ?? null,
       expandedProjectIds: expandedProjectIds.filter((projectId) =>
@@ -970,7 +1067,8 @@ function App() {
   }
 
   const copyLaunchCommand = async (terminal: TerminalModel) => {
-    const command = normalizeStoredCommand(terminal.lastCommand || terminal.command)
+    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
+    const command = visibleLaunchCommand(terminal, projectPath)
     if (!command) {
       setNotice('No launch command is available for this terminal.')
       return
@@ -1017,7 +1115,7 @@ function App() {
                 if (!currentTerminal) return current
                 return {
                   ...current,
-                  [terminal.id]: updateInputState(currentTerminal, data),
+                  [terminal.id]: updateInputState(currentTerminal, data, activeProject.path),
                 }
               })
               if (shouldWriteToPty) window.terminalHost?.write({ id: terminal.id, data })
@@ -1363,12 +1461,12 @@ function App() {
                 <div>
                   <dt>Launch Command</dt>
                   <dd className="detailValueWithAction">
-                    <span>{normalizeStoredCommand(activeTerminal.lastCommand || activeTerminal.command) || '-'}</span>
+                    <span>{visibleLaunchCommand(activeTerminal, activeProject.path) || '-'}</span>
                     <button
                       type="button"
                       className="inlineCopyButton"
                       aria-label="Copy launch command"
-                      disabled={!normalizeStoredCommand(activeTerminal.lastCommand || activeTerminal.command)}
+                      disabled={!visibleLaunchCommand(activeTerminal, activeProject.path)}
                       onClick={() => copyLaunchCommand(activeTerminal)}
                     >
                       <Copy size={13} />
@@ -1381,7 +1479,7 @@ function App() {
               <button
                 type="button"
                 className="showAll"
-                disabled={!activeTerminal.lastCommand}
+                disabled={!visibleLaunchCommand(activeTerminal, activeProject.path)}
                 onClick={() => rerunTerminal(activeTerminal)}
               >
                 Rerun Last Command
