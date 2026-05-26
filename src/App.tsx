@@ -232,15 +232,17 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>) =>
 
 const compactTerminalsForSave = (current: Record<string, TerminalModel>) =>
   Object.fromEntries(
-    Object.entries(current).map(([id, terminal]) => [
-      id,
-      {
-        ...terminal,
-        eventLog: terminal.eventLog.slice(0, 12),
-        transcript: terminal.transcript?.slice(-maxTranscriptLength),
-        inputBuffer: '',
-      },
-    ]),
+    Object.entries(current)
+      .filter(([, terminal]) => Boolean(terminal.projectId))
+      .map(([id, terminal]) => [
+        id,
+        {
+          ...terminal,
+          eventLog: terminal.eventLog.slice(0, 12),
+          transcript: terminal.transcript?.slice(-maxTranscriptLength),
+          inputBuffer: '',
+        },
+      ]),
   ) as Record<string, TerminalModel>
 
 function App() {
@@ -400,18 +402,22 @@ function App() {
       window.dispatchEvent(new CustomEvent(`terminal-data:${id}`, { detail: data }))
     })
     const offExit = window.terminalHost.onExit(({ id, exitCode, signal }) => {
-      setTerminals((current) => ({
-        ...current,
-        [id]: {
-          ...current[id],
-          status: 'exited',
-          exitCode,
-          eventLog: [
-            event(`Process exited: code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
-            ...(current[id]?.eventLog ?? []),
-          ].slice(0, 12),
-        },
-      }))
+      setTerminals((current) => {
+        const terminal = current[id]
+        if (!terminal) return current
+        return {
+          ...current,
+          [id]: {
+            ...terminal,
+            status: 'exited',
+            exitCode,
+            eventLog: [
+              event(`Process exited: code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
+              ...(terminal.eventLog ?? []),
+            ].slice(0, 12),
+          },
+        }
+      })
     })
     return () => {
       offData()

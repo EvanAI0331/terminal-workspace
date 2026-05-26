@@ -146,8 +146,20 @@ app.on("window-all-closed", () => {
 
 ipcMain.handle("terminal:create", (event, request) => {
   const id = request.id;
-  if (!id || sessions.has(id)) {
-    throw new Error(`Invalid or duplicate terminal id: ${id}`);
+  if (!id) {
+    throw new Error(`Invalid terminal id: ${id}`);
+  }
+
+  const existingSession = sessions.get(id);
+  if (existingSession) {
+    existingSession.ownerWindowId = event.sender.id;
+    return {
+      id: existingSession.id,
+      pid: existingSession.terminal.pid,
+      shell: existingSession.shell,
+      cwd: existingSession.cwd,
+      createdAt: existingSession.createdAt,
+    };
   }
 
   const cwd = request.cwd;
@@ -172,10 +184,9 @@ ipcMain.handle("terminal:create", (event, request) => {
     rows,
   });
 
-  const ownerWindowId = event.sender.id;
   const session = {
     id,
-    ownerWindowId,
+    ownerWindowId: event.sender.id,
     terminal,
     shell,
     cwd,
@@ -185,7 +196,7 @@ ipcMain.handle("terminal:create", (event, request) => {
   sessions.set(id, session);
 
   terminal.onData((data) => {
-    sendToWindow(ownerWindowId, "terminal:data", { id, data });
+    sendToWindow(session.ownerWindowId, "terminal:data", { id, data });
   });
 
   terminal.onExit(({ exitCode, signal }) => {
