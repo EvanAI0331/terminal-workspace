@@ -456,6 +456,8 @@ input {
   background: #687386;
 }
 
+.dot.idle,
+.statusPill.idle,
 .dot.exited,
 .statusPill.exited,
 .dot.unavailable,

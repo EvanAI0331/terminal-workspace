@@ -57,6 +57,7 @@ type TerminalModel = {
   lastCommand?: string
   restoreOnSelect?: boolean
   height?: number
+  busy?: boolean
 }
 
 type TerminalCreateResult = {
@@ -106,6 +107,7 @@ type TerminalHost = {
   }) => Promise<TerminalCreateResult>
   write: (request: { id: string; data: string }) => Promise<{ ok: boolean }>
   resize: (request: { id: string; cols: number; rows: number }) => Promise<{ ok: boolean }>
+  status: (id: string) => Promise<{ exists: boolean; active: boolean; pid: number | null }>
   kill: (id: string) => Promise<{ ok: boolean }>
   cwd: (id: string) => Promise<{ ok: boolean; cwd: string | null }>
   workspace: () => Promise<{ cwd: string; shell: string }>
@@ -140,6 +142,12 @@ const statusText: Record<RuntimeStatus, string> = {
   failed: 'Failed',
   unavailable: 'Unavailable',
 }
+
+const terminalIndicatorStatus = (terminal: TerminalModel): RuntimeStatus =>
+  terminal.status === 'running' ? (terminal.busy ? 'running' : 'exited') : terminal.status
+
+const terminalStatusLabel = (terminal: TerminalModel) =>
+  terminal.status === 'running' && !terminal.busy ? 'Idle' : statusText[terminal.status]
 
 const maxTranscriptLength = 40000
 
@@ -231,6 +239,7 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>) =>
         {
         ...terminal,
         status: shouldRestore ? 'idle' : terminal.status,
+        busy: false,
         pid: undefined,
         exitCode: shouldRestore ? null : terminal.exitCode,
         restoreOnSelect: shouldRestore || terminal.restoreOnSelect,
@@ -299,6 +308,14 @@ function App() {
     .filter((terminal) => terminal.projectId === activeProject.id)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .slice(0, 8)
+  const runningTerminalIds = useMemo(
+    () => Object.values(terminals)
+      .filter((terminal) => terminal.status === 'running')
+      .map((terminal) => terminal.id)
+      .sort()
+      .join('|'),
+    [terminals],
+  )
   const persistedState = useMemo<PersistedWorkspaceState>(
     () => ({
       version: 1,
@@ -425,6 +442,7 @@ function App() {
           [id]: {
             ...terminal,
             status: nextStatus,
+            busy: false,
             exitCode,
             eventLog: [
               event(`Process exited: code ${exitCode}${signal ? ` signal ${signal}` : ''}`),
@@ -507,6 +525,51 @@ function App() {
     }, 2500)
     return () => window.clearInterval(timer)
   }, [activeTerminalId, terminals])
+
+  useEffect(() => {
+    if (!window.terminalHost?.status || !runningTerminalIds) return
+    let cancelled = false
+    const refreshActivity = async () => {
+      const ids = runningTerminalIds.split('|').filter(Boolean)
+      await Promise.all(ids.map(async (id) => {
+        try {
+          const runtime = await window.terminalHost?.status(id)
+          if (!runtime || cancelled) return
+          setTerminals((current) => {
+            const terminal = current[id]
+            if (!terminal || terminal.status !== 'running') return current
+            return {
+              ...current,
+              [id]: {
+                ...terminal,
+                busy: runtime.active,
+                pid: runtime.pid ?? terminal.pid,
+              },
+            }
+          })
+        } catch {
+          if (cancelled) return
+          setTerminals((current) => {
+            const terminal = current[id]
+            if (!terminal || terminal.status !== 'running') return current
+            return {
+              ...current,
+              [id]: {
+                ...terminal,
+                busy: false,
+              },
+            }
+          })
+        }
+      }))
+    }
+    refreshActivity()
+    const timer = window.setInterval(refreshActivity, 1500)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [runningTerminalIds])
 
   useEffect(() => {
     const scanPath = activeProject.path
@@ -595,6 +658,7 @@ function App() {
       cwd,
       command: '',
       status: window.terminalHost ? 'idle' : 'unavailable',
+      busy: false,
       eventLog: [],
     }
 
@@ -626,6 +690,7 @@ function App() {
       attachTerminal({
         ...terminal,
         status: 'running',
+        busy: false,
         pid: runtime.pid,
         shell: runtime.shell,
         cwd: runtime.cwd,
@@ -638,6 +703,7 @@ function App() {
       attachTerminal({
         ...terminal,
         status: 'failed',
+        busy: false,
         eventLog: [event(`Start failed: ${message}`)],
       })
       setNotice(`Terminal start failed: ${message}`)
@@ -651,6 +717,7 @@ function App() {
       [id]: {
         ...current[id],
         status: 'exited',
+        busy: false,
         eventLog: [event('Stop requested'), ...(current[id]?.eventLog ?? [])].slice(0, 12),
       },
     }))
@@ -680,6 +747,7 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           status: 'running',
+          busy: false,
           pid: runtime.pid,
           shell: runtime.shell,
           cwd: runtime.cwd,
@@ -703,6 +771,7 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           status: 'failed',
+          busy: false,
           eventLog: [event(`Start failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
@@ -767,6 +836,7 @@ function App() {
         [terminal.id]: {
           ...current[terminal.id],
           status: 'failed',
+          busy: false,
           eventLog: [event(`Rerun failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
@@ -1127,7 +1197,7 @@ function App() {
                         >
                           <TerminalSquare size={15} />
                           <span>{terminal.name || `Terminal ${index + 1}`}</span>
-                          <i className={`dot ${terminal.status}`} />
+                          <i className={`dot ${terminalIndicatorStatus(terminal)}`} />
                         </button>
                       ))}
                       <button
@@ -1179,7 +1249,7 @@ function App() {
               >
                 <TerminalSquare size={15} />
                 <span>{terminal.name}</span>
-                <i className={`dot ${terminal.status}`} />
+                <i className={`dot ${terminalIndicatorStatus(terminal)}`} />
               </button>
             )) : <p className="sidebarHint">No real terminals yet.</p>}
           </div>
@@ -1227,7 +1297,7 @@ function App() {
               className={terminal.id === activeTerminal?.id ? 'active' : ''}
               onClick={() => setActiveTerminalId(terminal.id)}
             >
-              <span className={`dot ${terminal.status}`} />
+              <span className={`dot ${terminalIndicatorStatus(terminal)}`} />
               {terminal.name}
               <span
                 className="tabClose"
@@ -1258,7 +1328,7 @@ function App() {
         {activeTerminal ? (
           <>
             <div className="runtimeHeader">
-              <span className={`dot ${activeTerminal.status}`} />
+              <span className={`dot ${terminalIndicatorStatus(activeTerminal)}`} />
               <div>
                 <strong>{activeTerminal.name}</strong>
                 <span>{activeTerminal.role}</span>
@@ -1277,8 +1347,8 @@ function App() {
               <dl className="detailTable">
                 <div>
                   <dt>Status</dt>
-                  <dd className={activeTerminal.status === 'running' ? 'greenText' : activeTerminal.status === 'failed' ? 'redText' : ''}>
-                    {statusText[activeTerminal.status]}
+                  <dd className={terminalIndicatorStatus(activeTerminal) === 'running' ? 'greenText' : activeTerminal.status === 'failed' ? 'redText' : ''}>
+                    {terminalStatusLabel(activeTerminal)}
                   </dd>
                 </div>
                 <div><dt>PID</dt><dd>{activeTerminal.pid ?? '-'}</dd></div>
@@ -1323,7 +1393,7 @@ function App() {
                 {activeTerminal.eventLog.map((event, index) => (
                   <div key={`${event.message}-${index}`}>
                     <time>{formatTime(event.time)}</time>
-                    <i className={activeTerminal.status === 'failed' ? 'red' : activeTerminal.status === 'running' ? '' : 'yellow'} />
+                    <i className={activeTerminal.status === 'failed' ? 'red' : terminalIndicatorStatus(activeTerminal) === 'running' ? '' : 'yellow'} />
                     <span>{event.message}</span>
                   </div>
                 ))}
@@ -1418,7 +1488,7 @@ function TerminalCard({
       onClick={onSelect}
     >
       <header className="terminalCardHeader">
-        <span className={`dot ${terminal.status}`} />
+        <span className={`dot ${terminalIndicatorStatus(terminal)}`} />
         <strong>{terminal.name}</strong>
         <code>{terminal.role || terminal.shell || 'shell'}</code>
         <span className="terminalPath">{terminal.cwd}</span>

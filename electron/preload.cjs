@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("terminalHost", {
   create: (request) => ipcRenderer.invoke("terminal:create", request),
   write: (request) => ipcRenderer.invoke("terminal:write", request),
   resize: (request) => ipcRenderer.invoke("terminal:resize", request),
+  status: (id) => ipcRenderer.invoke("terminal:status", id),
   kill: (id) => ipcRenderer.invoke("terminal:kill", id),
   cwd: (id) => ipcRenderer.invoke("terminal:cwd", id),
   list: () => ipcRenderer.invoke("terminal:list"),

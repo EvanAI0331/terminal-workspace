@@ -95,6 +95,22 @@ function readProcessCwd(pid) {
   });
 }
 
+function hasChildProcesses(pid) {
+  return new Promise((resolve, reject) => {
+    execFile("pgrep", ["-P", String(pid)], (error, stdout, stderr) => {
+      if (!error) {
+        resolve(stdout.trim().length > 0);
+        return;
+      }
+      if (error.code === 1) {
+        resolve(false);
+        return;
+      }
+      reject(new Error(stderr.trim() || error.message));
+    });
+  });
+}
+
 function sendToWindow(windowId, channel, payload) {
   const win = BrowserWindow.fromId(windowId);
   if (!win || win.isDestroyed()) return;
@@ -201,7 +217,7 @@ ipcMain.handle("terminal:create", (event, request) => {
 
   terminal.onExit(({ exitCode, signal }) => {
     session.exitCode = exitCode;
-    sendToWindow(ownerWindowId, "terminal:exit", { id, exitCode, signal });
+    sendToWindow(session.ownerWindowId, "terminal:exit", { id, exitCode, signal });
     sessions.delete(id);
   });
 
@@ -218,6 +234,18 @@ ipcMain.handle("app:workspace", () => ({
   cwd: process.cwd(),
   shell: process.env.SHELL || "/bin/zsh",
 }));
+
+ipcMain.handle("terminal:status", async (_event, id) => {
+  const session = sessions.get(id);
+  if (!session) {
+    return { exists: false, active: false, pid: null };
+  }
+  return {
+    exists: true,
+    active: await hasChildProcesses(session.terminal.pid),
+    pid: session.terminal.pid,
+  };
+});
 
 ipcMain.handle("app:state-meta", () => ({
   userData: app.getPath("userData"),
