@@ -105,6 +105,7 @@ type TerminalHost = {
     cwd: string
     cols?: number
     rows?: number
+    userInitiated: true
   }) => Promise<TerminalCreateResult>
   write: (request: { id: string; data: string }) => Promise<{ ok: boolean }>
   resize: (request: { id: string; cols: number; rows: number }) => Promise<{ ok: boolean }>
@@ -305,14 +306,14 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
           ...terminal,
           command: commandIsValid ? terminal.command : '',
           lastCommand: commandIsValid ? terminal.lastCommand : undefined,
-          status: shouldRestore ? 'idle' : terminal.status,
+          status: shouldRestore ? 'exited' : terminal.status,
           busy: false,
           pid: undefined,
           exitCode: shouldRestore ? null : terminal.exitCode,
-          restoreOnSelect: shouldRestore || terminal.restoreOnSelect,
+          restoreOnSelect: false,
           eventLog:
             shouldRestore
-              ? [event('Previous process ended when the app quit. Start a real PTY to continue input.'), ...(terminal.eventLog ?? [])].slice(0, 12)
+              ? [event('Previous process ended when the app quit. Click Start Terminal to create a new PTY.'), ...(terminal.eventLog ?? [])].slice(0, 12)
               : terminal.eventLog ?? [],
         },
       ]
@@ -354,6 +355,7 @@ const compactTerminalsForSave = (current: Record<string, TerminalModel>, project
       .map(([id, terminal]) => {
         const persistedTerminal = { ...terminal }
         delete persistedTerminal.transcript
+        delete persistedTerminal.restoreOnSelect
         return [
           id,
           {
@@ -704,7 +706,7 @@ function App() {
     }
 
     try {
-      const runtime = await window.terminalHost.create({ id, cwd, cols: 110, rows: 30 })
+      const runtime = await window.terminalHost.create({ id, cwd, cols: 110, rows: 30, userInitiated: true })
       attachTerminal({
         ...terminal,
         status: 'running',
@@ -764,6 +766,7 @@ function App() {
         cwd: terminal.cwd,
         cols: 110,
         rows: 30,
+        userInitiated: true,
       })
       setTerminals((current) => ({
         ...current,

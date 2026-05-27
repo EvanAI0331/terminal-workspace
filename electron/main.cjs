@@ -139,6 +139,10 @@ app.on("window-all-closed", () => {
 });
 
 ipcMain.handle("terminal:create", (event, request) => {
+  if (request.userInitiated !== true) {
+    throw new Error("Terminal creation requires an explicit user action.");
+  }
+
   const id = request.id;
   if (!id) {
     throw new Error(`Invalid terminal id: ${id}`);
