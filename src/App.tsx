@@ -386,6 +386,7 @@ function App() {
   const [projectDraft, setProjectDraft] = useState({ name: '', path: defaultPath })
   const [sidebarPanel, setSidebarPanel] = useState('terminals')
   const [detailTab, setDetailTab] = useState<'details' | 'settings'>('details')
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'split'>('list')
   const [notice, setNotice] = useState('Create a project or add a terminal.')
   const [inspection, setInspection] = useState<ProjectInspection | null>(null)
@@ -1143,7 +1144,7 @@ function App() {
   }
 
   return (
-    <main className="appShell">
+    <main className={`appShell ${isDetailsOpen ? 'detailsOpen' : 'detailsClosed'}`}>
       <aside className="sidebar">
         <div className="brand">
           <Folder size={20} />
@@ -1329,7 +1330,7 @@ function App() {
           </button>
           <div className="toolbarIcons">
             <button type="button" aria-label="Notifications" onClick={() => setNotice('No runtime notifications.')}><Bell size={18} /></button>
-            <button type="button" aria-label="Settings" onClick={() => setDetailTab('settings')}><Settings size={18} /></button>
+            <button type="button" aria-label="Settings" onClick={() => { setIsDetailsOpen(true); setDetailTab('settings') }}><Settings size={18} /></button>
           </div>
         </header>
 
@@ -1368,9 +1369,16 @@ function App() {
 
       <aside className="details">
         <div className="detailsTitle">
-          <PanelRight size={16} />
+          <button
+            type="button"
+            className="detailRailButton"
+            aria-label={isDetailsOpen ? 'Collapse details panel' : 'Expand details panel'}
+            onClick={() => setIsDetailsOpen((value) => !value)}
+          >
+            <PanelRight size={16} />
+          </button>
         </div>
-        {activeTerminal ? (
+        {isDetailsOpen && activeTerminal ? (
           <>
             <div className="runtimeHeader">
               <span className={`dot ${terminalIndicatorStatus(activeTerminal)}`} />
@@ -1378,8 +1386,8 @@ function App() {
                 <strong>{activeTerminal.name}</strong>
                 <span>{activeTerminal.role}</span>
               </div>
-              <button type="button" className="detailIcon" onClick={() => setNotice('Details panel remains expanded.')}><ChevronsRight size={17} /></button>
-              <button type="button" className="detailIcon" onClick={() => setActiveTerminalId(null)}><X size={17} /></button>
+              <button type="button" className="detailIcon" onClick={() => setIsDetailsOpen(false)}><ChevronsRight size={17} /></button>
+              <button type="button" className="detailIcon" onClick={() => { setActiveTerminalId(null); setIsDetailsOpen(false) }}><X size={17} /></button>
             </div>
             <div className="detailTabs">
               <button type="button" className={detailTab === 'details' ? 'selected' : ''} onClick={() => setDetailTab('details')}>Details</button>
@@ -1463,12 +1471,12 @@ function App() {
               </section>
             )}
           </>
-        ) : (
+        ) : isDetailsOpen ? (
           <div className="detailsEmpty">
             <Play size={28} />
             <p>Select or create a terminal to view process, directory, status, and events.</p>
           </div>
-        )}
+        ) : null}
       </aside>
     </main>
   )
