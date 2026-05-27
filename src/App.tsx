@@ -108,9 +108,7 @@ type TerminalHost = {
   }) => Promise<TerminalCreateResult>
   write: (request: { id: string; data: string }) => Promise<{ ok: boolean }>
   resize: (request: { id: string; cols: number; rows: number }) => Promise<{ ok: boolean }>
-  status: (id: string) => Promise<{ exists: boolean; active: boolean; pid: number | null }>
   kill: (id: string) => Promise<{ ok: boolean }>
-  cwd: (id: string) => Promise<{ ok: boolean; cwd: string | null }>
   workspace: () => Promise<{ cwd: string; shell: string }>
   stateMeta?: () => Promise<{ userData: string; statePath: string }>
   loadState: () => Promise<{ state: PersistedWorkspaceState | null; path: string }>
@@ -353,16 +351,22 @@ const compactTerminalsForSave = (current: Record<string, TerminalModel>, project
   Object.fromEntries(
     Object.entries(sanitizeTerminalCommands(current, projects))
       .filter(([, terminal]) => Boolean(terminal.projectId))
-      .map(([id, terminal]) => [
-        id,
-        {
-          ...terminal,
-          eventLog: terminal.eventLog.slice(0, 12),
-          transcript: terminal.transcript?.slice(-maxTranscriptLength),
-          inputBuffer: '',
-        },
-      ]),
+      .map(([id, terminal]) => {
+        const persistedTerminal = { ...terminal }
+        delete persistedTerminal.transcript
+        return [
+          id,
+          {
+            ...persistedTerminal,
+            eventLog: terminal.eventLog.slice(0, 12),
+            inputBuffer: '',
+          },
+        ]
+      }),
   ) as Record<string, TerminalModel>
+
+const serializeStateForChangeCheck = (state: PersistedWorkspaceState) =>
+  JSON.stringify({ ...state, savedAt: 0 })
 
 function App() {
   const [projects, setProjects] = useState<Project[]>(() => [
@@ -389,7 +393,9 @@ function App() {
   const [isInspecting, setIsInspecting] = useState(false)
   const [isStateLoaded, setIsStateLoaded] = useState(false)
   const [hasPersistedState, setHasPersistedState] = useState(false)
+  const [terminalTranscripts, setTerminalTranscripts] = useState<Record<string, string>>({})
   const persistedStateRef = useRef<PersistedWorkspaceState | null>(null)
+  const lastSavedStateJsonRef = useRef('')
 
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0]
   const activeTerminals = useMemo(
@@ -439,7 +445,9 @@ function App() {
   const saveStateImmediately = useCallback((overrides: Partial<PersistedWorkspaceState>) => {
     const state = persistedStateRef.current
     if (!state || !window.terminalHost?.saveStateSync) return
-    window.terminalHost.saveStateSync({ ...state, ...overrides, savedAt: Date.now() })
+    const nextState = { ...state, ...overrides, savedAt: 0 }
+    lastSavedStateJsonRef.current = serializeStateForChangeCheck(nextState)
+    window.terminalHost.saveStateSync({ ...nextState, savedAt: Date.now() })
   }, [])
 
   useEffect(() => {
@@ -458,6 +466,13 @@ function App() {
           return
         }
         const loadedTerminals = normalizeLoadedTerminals(state.terminals ?? {}, state.projects)
+        setTerminalTranscripts(
+          Object.fromEntries(
+            Object.entries(loadedTerminals)
+              .filter(([, terminal]) => Boolean(terminal.transcript))
+              .map(([id, terminal]) => [id, terminal.transcript ?? '']),
+          ),
+        )
         setProjects(state.projects)
         setTerminals(loadedTerminals)
         setActiveProjectId(state.activeProjectId)
@@ -507,17 +522,10 @@ function App() {
   useEffect(() => {
     if (!window.terminalHost) return
     const offData = window.terminalHost.onData(({ id, data }) => {
-      setTerminals((current) => {
-        const terminal = current[id]
-        if (!terminal) return current
-        return {
-          ...current,
-          [id]: {
-            ...terminal,
-            transcript: appendTranscript(terminal.transcript, data),
-          },
-        }
-      })
+      setTerminalTranscripts((current) => ({
+        ...current,
+        [id]: appendTranscript(current[id], data),
+      }))
       window.dispatchEvent(new CustomEvent(`terminal-data:${id}`, { detail: data }))
     })
     const offExit = window.terminalHost.onExit(({ id, exitCode, signal }) => {
@@ -550,6 +558,9 @@ function App() {
   useEffect(() => {
     if (!isStateLoaded || !window.terminalHost) return
     const timer = window.setTimeout(() => {
+      const nextStateJson = serializeStateForChangeCheck(persistedState)
+      if (nextStateJson === lastSavedStateJsonRef.current) return
+      lastSavedStateJsonRef.current = nextStateJson
       window.terminalHost?.saveState({ ...persistedState, savedAt: Date.now() }).catch((error) => {
         const message = error instanceof Error ? error.message : String(error)
         setNotice(`Failed to save workspace: ${message}`)
@@ -562,6 +573,9 @@ function App() {
     const flushState = () => {
       const state = persistedStateRef.current
       if (!state || !window.terminalHost?.saveStateSync) return
+      const nextStateJson = serializeStateForChangeCheck(state)
+      if (nextStateJson === lastSavedStateJsonRef.current) return
+      lastSavedStateJsonRef.current = nextStateJson
       window.terminalHost.saveStateSync({ ...state, savedAt: Date.now() })
     }
     const flushWhenHidden = () => {
@@ -582,46 +596,37 @@ function App() {
     return () => window.clearInterval(timer)
   }, [])
 
-  useEffect(() => {
-    const scanPath = activeProject.path
+  const runProjectInspection = useCallback(async (project: Project) => {
+    const scanPath = project.path
+    setActiveProjectId(project.id)
+    setSidebarPanel('services')
+    setExpandedProbeProjectIds((current) => [...new Set([...current, project.id])])
     if (!window.terminalHost || !scanPath) {
-      Promise.resolve().then(() => {
-        setInspection(null)
-        setInspectionError(null)
-        setIsInspecting(false)
-      })
+      setInspection(null)
+      setInspectionError(null)
+      setIsInspecting(false)
+      setNotice('Set a real project path before scanning.')
       return
     }
-    let cancelled = false
-    Promise.resolve()
-      .then(() => {
-        if (cancelled) return null
-        setIsInspecting(true)
-        setInspection(null)
-        setInspectionError(null)
-        return window.terminalHost?.inspectProject({ cwd: scanPath }) ?? null
-      })
-      .then((result) => {
-        if (cancelled || !result || result.cwd !== scanPath) return
-        setInspection(result)
-        setNotice(
-          `Deep scan complete: ${result.scan?.fileCount ?? 0} files, ${result.scan?.projectRoots.length ?? 1} project root${result.warnings?.length ? `, ${result.warnings.length} warning(s)` : ''}.`,
-        )
-      })
-      .catch((error) => {
-        if (cancelled) return
-        const message = error instanceof Error ? error.message : String(error)
-        setInspection(null)
-        setInspectionError(message)
-        setNotice(`Project scan failed: ${message}`)
-      })
-      .finally(() => {
-        if (!cancelled) setIsInspecting(false)
-      })
-    return () => {
-      cancelled = true
+    setIsInspecting(true)
+    setInspection(null)
+    setInspectionError(null)
+    try {
+      const result = await window.terminalHost.inspectProject({ cwd: scanPath })
+      if (result.cwd !== scanPath) return
+      setInspection(result)
+      setNotice(
+        `Deep scan complete: ${result.scan?.fileCount ?? 0} files, ${result.scan?.projectRoots.length ?? 1} project root${result.warnings?.length ? `, ${result.warnings.length} warning(s)` : ''}.`,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      setInspection(null)
+      setInspectionError(message)
+      setNotice(`Project scan failed: ${message}`)
+    } finally {
+      setIsInspecting(false)
     }
-  }, [activeProject.path])
+  }, [])
 
   const createProject = () => {
     const name = projectDraft.name.trim() || `Project ${projects.length + 1}`
@@ -967,12 +972,6 @@ function App() {
     )
   }
 
-  const toggleProjectProbe = (id: string) => {
-    setExpandedProbeProjectIds((current) =>
-      current.includes(id) ? current.filter((projectId) => projectId !== id) : [...current, id],
-    )
-  }
-
   const selectRecentTerminal = (terminal: TerminalModel) => {
     setActiveProjectId(terminal.projectId)
     setExpandedProjectIds((current) => [...new Set([...current, terminal.projectId])])
@@ -1054,6 +1053,7 @@ function App() {
         >
           <TerminalPane
             terminal={terminal}
+            transcript={terminalTranscripts[terminal.id] ?? terminal.transcript ?? ''}
             onFocus={() => setActiveTerminalId(terminal.id)}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
@@ -1250,9 +1250,7 @@ function App() {
                         type="button"
                         className={`treeItem probeRoot ${isProbeExpanded ? 'expanded' : ''}`}
                         onClick={() => {
-                          selectProject(project)
-                          toggleProjectProbe(project.id)
-                          setNotice(isProbeExpanded ? 'Collapsed project inspection.' : 'Expanded project inspection.')
+                          runProjectInspection(project)
                         }}
                       >
                         {isProbeExpanded ? <ChevronDown size={17} /> : <ChevronsRight size={17} />}
@@ -1613,11 +1611,13 @@ function TerminalCard({
 
 function TerminalPane({
   terminal,
+  transcript,
   onFocus,
   onInput,
   onResize,
 }: {
   terminal: TerminalModel
+  transcript: string
   onFocus: () => void
   onInput: (data: string) => void
   onResize: (cols: number, rows: number) => void
@@ -1627,7 +1627,7 @@ function TerminalPane({
   const fitRef = useRef<FitAddon | null>(null)
   const onInputRef = useRef(onInput)
   const onResizeRef = useRef(onResize)
-  const initialTranscriptRef = useRef(terminal.transcript)
+  const initialTranscriptRef = useRef(transcript)
 
   useEffect(() => {
     onInputRef.current = onInput
@@ -1635,8 +1635,8 @@ function TerminalPane({
   }, [onInput, onResize])
 
   useEffect(() => {
-    initialTranscriptRef.current = terminal.transcript
-  }, [terminal.id, terminal.transcript])
+    initialTranscriptRef.current = transcript
+  }, [terminal.id, transcript])
 
   useEffect(() => {
     if (!containerRef.current || termRef.current) return
@@ -1715,8 +1715,8 @@ function TerminalPane({
   if (terminal.status !== 'running') {
     return (
       <div className="terminalRestorePane">
-        {terminal.transcript ? (
-          <pre className="terminalTranscript terminalRestoreHistory">{terminal.transcript}</pre>
+        {transcript ? (
+          <pre className="terminalTranscript terminalRestoreHistory">{transcript}</pre>
         ) : (
           <div className="terminalRestoreEmpty">
             <TerminalSquare size={24} />

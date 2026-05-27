@@ -1,5 +1,4 @@
-const { app, BrowserWindow, clipboard, ipcMain, nativeImage } = require("electron");
-const { execFile } = require("node:child_process");
+const { app, BrowserWindow, clipboard, dialog, ipcMain, nativeImage } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const pty = require("node-pty");
@@ -76,41 +75,6 @@ function writeWorkspaceState(state) {
   return filePath;
 }
 
-function readProcessCwd(pid) {
-  return new Promise((resolve, reject) => {
-    execFile("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], (error, stdout, stderr) => {
-      if (error) {
-        reject(new Error(stderr.trim() || error.message));
-        return;
-      }
-      const cwdLine = stdout
-        .split(/\r?\n/)
-        .find((line) => line.startsWith("n/"));
-      if (!cwdLine) {
-        reject(new Error(`Unable to read cwd for pid ${pid}`));
-        return;
-      }
-      resolve(cwdLine.slice(1));
-    });
-  });
-}
-
-function hasChildProcesses(pid) {
-  return new Promise((resolve, reject) => {
-    execFile("pgrep", ["-P", String(pid)], (error, stdout, stderr) => {
-      if (!error) {
-        resolve(stdout.trim().length > 0);
-        return;
-      }
-      if (error.code === 1) {
-        resolve(false);
-        return;
-      }
-      reject(new Error(stderr.trim() || error.message));
-    });
-  });
-}
-
 function sendToWindow(windowId, channel, payload) {
   const win = BrowserWindow.fromId(windowId);
   if (!win || win.isDestroyed()) return;
@@ -139,6 +103,20 @@ function createWindow() {
   } else {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
+
+  win.on("close", (event) => {
+    if (!sessions.size) return;
+    const choice = dialog.showMessageBoxSync(win, {
+      type: "warning",
+      buttons: ["Cancel", "Close and Stop Terminals"],
+      defaultId: 0,
+      cancelId: 0,
+      title: "Stop running terminals?",
+      message: "Closing Terminal Workspace will stop all terminals started inside this app.",
+      detail: `${sessions.size} terminal session${sessions.size === 1 ? "" : "s"} will be killed.`,
+    });
+    if (choice === 0) event.preventDefault();
+  });
 }
 
 app.whenReady().then(() => {
@@ -240,18 +218,6 @@ ipcMain.handle("clipboard:read-text", () => clipboard.readText());
 ipcMain.handle("clipboard:write-text", (_event, text) => {
   clipboard.writeText(String(text ?? ""));
   return clipboard.readText();
-});
-
-ipcMain.handle("terminal:status", async (_event, id) => {
-  const session = sessions.get(id);
-  if (!session) {
-    return { exists: false, active: false, pid: null };
-  }
-  return {
-    exists: true,
-    active: await hasChildProcesses(session.terminal.pid),
-    pid: session.terminal.pid,
-  };
 });
 
 ipcMain.handle("app:state-meta", () => ({
@@ -634,14 +600,6 @@ ipcMain.handle("terminal:kill", (_event, id) => {
   session.terminal.kill();
   sessions.delete(id);
   return { ok: true };
-});
-
-ipcMain.handle("terminal:cwd", async (_event, id) => {
-  const session = sessions.get(id);
-  if (!session) return { ok: false, cwd: null };
-  const cwd = await readProcessCwd(session.terminal.pid);
-  session.cwd = cwd;
-  return { ok: true, cwd };
 });
 
 ipcMain.handle("terminal:list", () => {
