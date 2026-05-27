@@ -19,13 +19,17 @@
   --red: #ff6b73;
   --blue: #67b7ff;
   display: grid;
-  grid-template-columns: minmax(250px, 292px) minmax(0, 1fr) minmax(300px, 340px);
+  grid-template-columns: minmax(250px, 292px) minmax(0, 1fr) 48px;
   width: 100vw;
   height: 100vh;
   min-width: 0;
   overflow: hidden;
   background: #0b0f14;
   color: var(--text);
+}
+
+.appShell.detailsOpen {
+  grid-template-columns: minmax(250px, 292px) minmax(0, 1fr) minmax(300px, 340px);
 }
 
 .sidebar,
@@ -738,8 +742,14 @@ input {
   -webkit-app-region: no-drag;
   grid-column: 3;
   position: relative;
-  z-index: 2;
+  z-index: 1;
   border-left: 1px solid var(--line);
+  background: #0e141b;
+  padding: 10px 7px;
+  overflow: hidden;
+}
+
+.appShell.detailsOpen .details {
   background:
     radial-gradient(circle at 35% 0, rgba(67, 87, 105, 0.13), transparent 260px),
     #0e141b;
@@ -750,7 +760,32 @@ input {
 .detailsTitle {
   -webkit-app-region: drag;
   height: 26px;
+  display: flex;
+  justify-content: center;
   color: #d8dee9;
+}
+
+.appShell.detailsOpen .detailsTitle {
+  justify-content: flex-start;
+}
+
+.detailRailButton {
+  -webkit-app-region: no-drag;
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--line-soft);
+  border-radius: 5px;
+  background: rgba(13, 19, 26, 0.96);
+  color: var(--muted-2);
+}
+
+.detailRailButton:hover,
+.detailRailButton:focus-visible {
+  border-color: rgba(103, 183, 255, 0.65);
+  color: var(--text);
+  outline: none;
 }
 
 .runtimeHeader {
@@ -1046,9 +1081,10 @@ input {
 
 .noticeBar {
   position: absolute;
-  left: 330px;
+  left: 14px;
+  right: 14px;
   bottom: 12px;
-  max-width: calc(100vw - 760px);
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1063,6 +1099,10 @@ input {
 
 @media (max-width: 1250px) {
   .appShell {
+    grid-template-columns: minmax(230px, 270px) minmax(0, 1fr) 48px;
+  }
+
+  .appShell.detailsOpen {
     grid-template-columns: minmax(230px, 270px) minmax(0, 1fr) minmax(280px, 320px);
   }
 
@@ -1084,6 +1124,10 @@ input {
 
 @media (max-width: 1080px) {
   .appShell {
+    grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) 44px;
+  }
+
+  .appShell.detailsOpen {
     grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) minmax(260px, 300px);
   }
 
