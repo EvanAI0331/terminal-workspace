@@ -1,12 +1,11 @@
-const { app, BrowserWindow, clipboard, dialog, ipcMain, nativeImage } = require("electron");
+const { app, BrowserWindow, clipboard, ipcMain, nativeImage } = require("electron");
+const { execFile } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
-const pty = require("node-pty");
 const yaml = require("yaml");
 const toml = require("smol-toml");
 
 const isDev = !app.isPackaged;
-const sessions = new Map();
 const sensitiveEnvPattern = /(key|token|secret|password|passwd|pwd|credential|auth|private)/i;
 const appIconPath = path.join(__dirname, "../assets/TerminalTopology.icns");
 const dockIconPath = path.join(__dirname, "../assets/TerminalTopology.png");
@@ -75,12 +74,6 @@ function writeWorkspaceState(state) {
   return filePath;
 }
 
-function sendToWindow(windowId, channel, payload) {
-  const win = BrowserWindow.fromId(windowId);
-  if (!win || win.isDestroyed()) return;
-  win.webContents.send(channel, payload);
-}
-
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -104,19 +97,6 @@ function createWindow() {
     win.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
-  win.on("close", (event) => {
-    if (!sessions.size) return;
-    const choice = dialog.showMessageBoxSync(win, {
-      type: "warning",
-      buttons: ["Cancel", "Close and Stop Terminals"],
-      defaultId: 0,
-      cancelId: 0,
-      title: "Stop running terminals?",
-      message: "Closing Terminal Workspace will stop all terminals started inside this app.",
-      detail: `${sessions.size} terminal session${sessions.size === 1 ? "" : "s"} will be killed.`,
-    });
-    if (choice === 0) event.preventDefault();
-  });
 }
 
 app.whenReady().then(() => {
@@ -131,81 +111,42 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  for (const session of sessions.values()) {
-    session.terminal.kill();
-  }
-  sessions.clear();
   if (process.platform !== "darwin") app.quit();
 });
 
-ipcMain.handle("terminal:create", (event, request) => {
-  const id = request.id;
-  if (!id) {
-    throw new Error(`Invalid terminal id: ${id}`);
-  }
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
 
-  const existingSession = sessions.get(id);
-  if (existingSession) {
-    existingSession.ownerWindowId = event.sender.id;
-    return {
-      id: existingSession.id,
-      pid: existingSession.terminal.pid,
-      shell: existingSession.shell,
-      cwd: existingSession.cwd,
-      createdAt: existingSession.createdAt,
-    };
-  }
+function runAppleScript(args) {
+  return new Promise((resolve, reject) => {
+    execFile("osascript", args, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error(stderr.trim() || error.message));
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+}
 
+ipcMain.handle("terminal:open-external", async (_event, request) => {
   const cwd = request.cwd;
   if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
     throw new Error(`Terminal cwd does not exist: ${cwd || "(empty)"}`);
   }
-  const shell = request.shell || process.env.SHELL || "/bin/zsh";
-  const cols = request.cols || 96;
-  const rows = request.rows || 28;
-  const createdAt = Date.now();
-  const env = {
-    ...process.env,
-    TERM: "xterm-256color",
-    COLORTERM: "truecolor",
-  };
-
-  const terminal = pty.spawn(shell, [], {
-    name: "xterm-256color",
-    cwd,
-    env,
-    cols,
-    rows,
-  });
-
-  const session = {
-    id,
-    ownerWindowId: event.sender.id,
-    terminal,
-    shell,
-    cwd,
-    createdAt,
-    exitCode: null,
-  };
-  sessions.set(id, session);
-
-  terminal.onData((data) => {
-    sendToWindow(session.ownerWindowId, "terminal:data", { id, data });
-  });
-
-  terminal.onExit(({ exitCode, signal }) => {
-    session.exitCode = exitCode;
-    sendToWindow(session.ownerWindowId, "terminal:exit", { id, exitCode, signal });
-    sessions.delete(id);
-  });
-
-  return {
-    id,
-    pid: terminal.pid,
-    shell,
-    cwd,
-    createdAt,
-  };
+  const command = String(request.command || "").trim();
+  const terminalCommand = [`cd ${shellQuote(cwd)}`, command].filter(Boolean).join("\n");
+  await runAppleScript([
+    "-e", "on run argv",
+    "-e", "tell application \"Terminal\"",
+    "-e", "activate",
+    "-e", "do script item 1 of argv",
+    "-e", "end tell",
+    "-e", "end run",
+    terminalCommand,
+  ]);
+  return { ok: true, app: "Terminal", cwd, openedAt: Date.now() };
 });
 
 ipcMain.handle("app:workspace", () => ({
@@ -578,37 +519,4 @@ ipcMain.handle("project:inspect", (_event, request) => {
     notes: detectNotes(index),
     warnings: index.warnings.slice(0, 20),
   };
-});
-
-ipcMain.handle("terminal:write", (_event, request) => {
-  const session = sessions.get(request.id);
-  if (!session) return { ok: false };
-  session.terminal.write(request.data);
-  return { ok: true };
-});
-
-ipcMain.handle("terminal:resize", (_event, request) => {
-  const session = sessions.get(request.id);
-  if (!session) return { ok: false };
-  session.terminal.resize(request.cols, request.rows);
-  return { ok: true };
-});
-
-ipcMain.handle("terminal:kill", (_event, id) => {
-  const session = sessions.get(id);
-  if (!session) return { ok: false };
-  session.terminal.kill();
-  sessions.delete(id);
-  return { ok: true };
-});
-
-ipcMain.handle("terminal:list", () => {
-  return Array.from(sessions.values()).map((session) => ({
-    id: session.id,
-    pid: session.terminal.pid,
-    shell: session.shell,
-    cwd: session.cwd,
-    createdAt: session.createdAt,
-    exitCode: session.exitCode,
-  }));
 });
