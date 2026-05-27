@@ -145,10 +145,10 @@ const statusText: Record<RuntimeStatus, string> = {
 }
 
 const terminalIndicatorStatus = (terminal: TerminalModel): RuntimeStatus =>
-  terminal.status === 'running' ? (terminal.busy ? 'running' : 'exited') : terminal.status
+  terminal.status
 
 const terminalStatusLabel = (terminal: TerminalModel) =>
-  terminal.status === 'running' && !terminal.busy ? 'Idle' : statusText[terminal.status]
+  statusText[terminal.status]
 
 const maxTranscriptLength = 40000
 
@@ -405,14 +405,6 @@ function App() {
     .filter((terminal) => terminal.projectId === activeProject.id)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .slice(0, 8)
-  const runningTerminalIds = useMemo(
-    () => Object.values(terminals)
-      .filter((terminal) => terminal.status === 'running')
-      .map((terminal) => terminal.id)
-      .sort()
-      .join('|'),
-    [terminals],
-  )
   const persistedState = useMemo<PersistedWorkspaceState>(
     () => ({
       version: 1,
@@ -589,84 +581,6 @@ function App() {
     const timer = window.setInterval(() => setClock((value) => value + 1), 1000)
     return () => window.clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    if (!window.terminalHost) return
-    const timer = window.setInterval(() => {
-      const runningTerminals = Object.values(terminals).filter(
-        (terminal) => terminal.status === 'running',
-      )
-      for (const terminal of runningTerminals) {
-        window.terminalHost
-          ?.cwd(terminal.id)
-          .then((result) => {
-            if (!result.ok || !result.cwd) return
-            const cwd = result.cwd
-            setTerminals((current) => {
-              const currentTerminal = current[terminal.id]
-              if (!currentTerminal || currentTerminal.cwd === cwd) return current
-              return {
-                ...current,
-                [terminal.id]: {
-                  ...currentTerminal,
-                  cwd,
-                },
-              }
-            })
-          })
-          .catch((error) => {
-            const message = error instanceof Error ? error.message : String(error)
-            setNotice(`Failed to sync terminal directory: ${message}`)
-          })
-      }
-    }, 2500)
-    return () => window.clearInterval(timer)
-  }, [activeTerminalId, terminals])
-
-  useEffect(() => {
-    if (!window.terminalHost?.status || !runningTerminalIds) return
-    let cancelled = false
-    const refreshActivity = async () => {
-      const ids = runningTerminalIds.split('|').filter(Boolean)
-      await Promise.all(ids.map(async (id) => {
-        try {
-          const runtime = await window.terminalHost?.status(id)
-          if (!runtime || cancelled) return
-          setTerminals((current) => {
-            const terminal = current[id]
-            if (!terminal || terminal.status !== 'running') return current
-            return {
-              ...current,
-              [id]: {
-                ...terminal,
-                busy: runtime.active,
-                pid: runtime.pid ?? terminal.pid,
-              },
-            }
-          })
-        } catch {
-          if (cancelled) return
-          setTerminals((current) => {
-            const terminal = current[id]
-            if (!terminal || terminal.status !== 'running') return current
-            return {
-              ...current,
-              [id]: {
-                ...terminal,
-                busy: false,
-              },
-            }
-          })
-        }
-      }))
-    }
-    refreshActivity()
-    const timer = window.setInterval(refreshActivity, 1500)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [runningTerminalIds])
 
   useEffect(() => {
     const scanPath = activeProject.path
