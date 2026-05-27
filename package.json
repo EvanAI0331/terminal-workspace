@@ -8,14 +8,19 @@
     "dev": "concurrently \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "dev:web": "vite --host 127.0.0.1",
     "desktop": "npm run build && electron .",
+    "postinstall": "npm rebuild node-pty --build-from-source",
+    "rebuild:pty": "npm rebuild node-pty --build-from-source",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "concurrently": "^9.2.1",
     "electron": "^42.2.0",
     "lucide-react": "^1.16.0",
+    "node-pty": "^1.1.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "smol-toml": "^1.6.1",
@@ -49,8 +54,8 @@
   "keywords": [
     "terminal",
     "electron",
-    "terminal",
-    "launcher",
+    "xterm",
+    "pty",
     "developer-tools",
     "workspace",
     "multi-terminal"

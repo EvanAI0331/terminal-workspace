@@ -1,7 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("terminalHost", {
-  openExternal: (request) => ipcRenderer.invoke("terminal:open-external", request),
+  create: (request) => ipcRenderer.invoke("terminal:create", request),
+  write: (request) => ipcRenderer.invoke("terminal:write", request),
+  resize: (request) => ipcRenderer.invoke("terminal:resize", request),
+  kill: (id) => ipcRenderer.invoke("terminal:kill", id),
+  list: () => ipcRenderer.invoke("terminal:list"),
   workspace: () => ipcRenderer.invoke("app:workspace"),
   stateMeta: () => ipcRenderer.invoke("app:state-meta"),
   loadState: () => ipcRenderer.invoke("app:state-load"),
@@ -10,4 +14,14 @@ contextBridge.exposeInMainWorld("terminalHost", {
   inspectProject: (request) => ipcRenderer.invoke("project:inspect", request),
   readClipboardText: () => ipcRenderer.invoke("clipboard:read-text"),
   writeClipboardText: (text) => ipcRenderer.invoke("clipboard:write-text", text),
+  onData: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on("terminal:data", listener);
+    return () => ipcRenderer.removeListener("terminal:data", listener);
+  },
+  onExit: (callback) => {
+    const listener = (_event, payload) => callback(payload);
+    ipcRenderer.on("terminal:exit", listener);
+    return () => ipcRenderer.removeListener("terminal:exit", listener);
+  },
 });
