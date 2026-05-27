@@ -130,44 +130,23 @@ function runAppleScript(args) {
   });
 }
 
-function windowBoundsFromRequest(event, bounds) {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  const shellBounds = win?.getBounds();
-  const rect = bounds || {};
-  if (!shellBounds || typeof rect.left !== "number" || typeof rect.top !== "number") return null;
-  const left = Math.round(shellBounds.x + rect.left);
-  const top = Math.round(shellBounds.y + rect.top);
-  const width = Math.max(360, Math.round(rect.width || 720));
-  const height = Math.max(220, Math.round(rect.height || 360));
-  return { left, top, right: left + width, bottom: top + height };
-}
-
-ipcMain.handle("terminal:open-window", async (event, request) => {
+ipcMain.handle("terminal:open-external", async (_event, request) => {
   const cwd = request.cwd;
   if (!cwd || !fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
     throw new Error(`Terminal cwd does not exist: ${cwd || "(empty)"}`);
   }
   const command = String(request.command || "").trim();
   const terminalCommand = [`cd ${shellQuote(cwd)}`, command].filter(Boolean).join("\n");
-  const bounds = windowBoundsFromRequest(event, request.bounds);
-  const args = [
+  await runAppleScript([
     "-e", "on run argv",
     "-e", "tell application \"Terminal\"",
     "-e", "activate",
     "-e", "do script item 1 of argv",
-  ];
-  if (bounds) {
-    args.push(
-      "-e", `set bounds of front window to {${bounds.left}, ${bounds.top}, ${bounds.right}, ${bounds.bottom}}`,
-    );
-  }
-  args.push(
     "-e", "end tell",
     "-e", "end run",
     terminalCommand,
-  );
-  await runAppleScript(args);
-  return { ok: true, app: "Terminal", cwd, openedAt: Date.now(), bounds };
+  ]);
+  return { ok: true, app: "Terminal", cwd, openedAt: Date.now() };
 });
 
 ipcMain.handle("app:workspace", () => ({

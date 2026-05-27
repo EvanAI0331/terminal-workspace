@@ -48,8 +48,8 @@
     linear-gradient(180deg, #111922 0, #0d141b 46%, #0b1118 100%);
 }
 
-.dot.window,
-.statusPill.window {
+.dot.external,
+.statusPill.external {
   background: var(--green);
 }
 

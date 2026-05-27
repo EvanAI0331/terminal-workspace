@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("terminalHost", {
-  openWindow: (request) => ipcRenderer.invoke("terminal:open-window", request),
+  openExternal: (request) => ipcRenderer.invoke("terminal:open-external", request),
   workspace: () => ipcRenderer.invoke("app:workspace"),
   stateMeta: () => ipcRenderer.invoke("app:state-meta"),
   loadState: () => ipcRenderer.invoke("app:state-load"),

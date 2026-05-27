@@ -11,7 +11,7 @@ It is built for the workflow where one project is never enough: frontend, backen
 Warp is polished, but Terminal Workspace is optimized for cross-project terminal management:
 
 - Manage multiple projects from one desktop window.
-- Keep separate window macOS Terminal windows organized by project.
+- Keep separate external macOS Terminal windows organized by project.
 - Restore terminal state and recent command context.
 - Probe project services, env files, tasks, workflows, docs, and subproject roots.
 - Resize each terminal panel independently.
@@ -20,7 +20,7 @@ Warp is polished, but Terminal Workspace is optimized for cross-project terminal
 
 ## Features
 
-- Native Terminal window docking without process ownership
+- External macOS Terminal launching without process ownership
 - Project sidebar with terminal shell entries and recent sessions
 - Multi-terminal grid, list, and split views
 - Per-terminal height resizing
@@ -37,9 +37,9 @@ Warp is polished, but Terminal Workspace is optimized for cross-project terminal
 - Per-project persisted settings, including project paths, deleted projects, terminals, layout, and launch commands
 - Per-terminal launch command editor with multiline save and copy support
 - Status indicators:
-  - Green: a native Terminal window was docked for this shell entry
+  - Green: an external Terminal window was opened for this shell entry
   - Yellow: shell entry is idle or not process-managed
-  - Red: docking the native Terminal window failed
+  - Red: opening the external Terminal window failed
 - macOS app icon and desktop launcher assets
 
 ## User Manual
@@ -59,11 +59,11 @@ Project inspection and launch-command validation use the **Project path** field 
 
 Click **Add Terminal** to create a shell entry for the selected project.
 
-The app does not host terminal input. Click **Dock Window** to open a real macOS Terminal window at that shell entry's directory. That window window is owned by macOS Terminal, not by Terminal Workspace.
+The app does not host terminal input. Click **Open in Terminal** to open a real macOS Terminal window at that shell entry's directory. That external window is owned by macOS Terminal, not by Terminal Workspace.
 
-### 3. Open Window Terminals
+### 3. Open External Terminals
 
-Use the window macOS Terminal window for typing, history, shell shortcuts, and process control. Terminal Workspace does not intercept input, share command history, or kill those window processes.
+Use the external macOS Terminal window for typing, history, shell shortcuts, and process control. Terminal Workspace does not intercept input, share command history, or kill those external processes.
 
 ### 4. Resize Terminal Areas
 
@@ -117,7 +117,7 @@ Terminal Workspace saves workspace state under the app data directory:
 
 The saved state includes project paths, project deletion, active project, active terminal, terminal metadata, launch commands, layout choices, and sidebar expansion.
 
-When the desktop app restarts, previous terminal shell entries are restored as idle entries. Window Terminal windows remain independent of Terminal Workspace.
+When the desktop app restarts, previous terminal shell entries are restored as idle entries. External Terminal windows remain independent of Terminal Workspace.
 
 ## Operation Guide
 
@@ -127,7 +127,7 @@ When the desktop app restarts, previous terminal shell entries are restored as i
 2. Set the top-left **Project path** to the repo root.
 3. Add terminals for frontend, backend, workers, logs, and scripts.
 4. Save each terminal's launch command in the right-side **Launch Command** field.
-5. Click **Open Launch Command** or **Dock Window** when you want a real Terminal window.
+5. Click **Open Launch Command** or **Open in Terminal** when you want a real Terminal window.
 6. Use Project Inspector to discover scripts, services, docs, env files, and workflows.
 7. Restart the app when needed; the workspace layout and saved commands should remain available.
 
@@ -147,9 +147,9 @@ PPT Pipeline
 
 ### Status Troubleshooting
 
-- **Green dot**: a native Terminal window was docked for this shell entry.
+- **Green dot**: an external Terminal window was opened for this shell entry.
 - **Yellow dot**: the shell entry is idle or not process-managed.
-- **Red dot**: docking the native Terminal window failed.
+- **Red dot**: opening the external Terminal window failed.
 
 If a launch command is blank, check that the saved command belongs to the current project path. Commands with an absolute `cd` path outside the project root are hidden instead of reused across projects.
 
@@ -184,7 +184,7 @@ npm run build
 ## Architecture
 
 - `src/` contains the React UI.
-- `electron/main.cjs` owns the Electron shell, native Terminal window docking, state persistence, and project inspection.
+- `electron/main.cjs` owns the Electron window, external Terminal launching, state persistence, and project inspection.
 - `electron/preload.cjs` exposes the safe renderer bridge.
 - `scripts/create-launcher-icon.swift` generates the macOS app icon.
 - `assets/` contains desktop icon resources.
