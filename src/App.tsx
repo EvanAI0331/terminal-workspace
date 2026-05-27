@@ -22,7 +22,7 @@ import {
 } from 'lucide-react'
 import './App.css'
 
-type RuntimeStatus = 'idle' | 'external' | 'failed' | 'unavailable'
+type RuntimeStatus = 'idle' | 'window' | 'failed' | 'unavailable'
 
 type Project = {
   id: string
@@ -57,7 +57,14 @@ type TerminalModel = {
   busy?: boolean
 }
 
-type ExternalTerminalOpenResult = { ok: boolean; app: string; cwd: string; openedAt: number }
+type WindowDockBounds = { left: number; top: number; width: number; height: number }
+type WindowTerminalOpenResult = {
+  ok: boolean
+  app: string
+  cwd: string
+  openedAt: number
+  bounds?: WindowDockBounds | null
+}
 
 type ProjectInspection = {
   cwd: string
@@ -90,7 +97,12 @@ type PersistedWorkspaceState = {
 }
 
 type TerminalHost = {
-  openExternal: (request: { id: string; cwd: string; command?: string }) => Promise<ExternalTerminalOpenResult>
+  openWindow: (request: {
+    id: string
+    cwd: string
+    command?: string
+    bounds?: WindowDockBounds
+  }) => Promise<WindowTerminalOpenResult>
   workspace: () => Promise<{ cwd: string; shell: string }>
   stateMeta?: () => Promise<{ userData: string; statePath: string }>
   loadState: () => Promise<{ state: PersistedWorkspaceState | null; path: string }>
@@ -114,7 +126,7 @@ const defaultPath = ''
 const event = (message: string): RuntimeEvent => ({ time: Date.now(), message })
 const statusText: Record<RuntimeStatus, string> = {
   idle: 'Idle',
-  external: 'External',
+  window: 'Window',
   failed: 'Failed',
   unavailable: 'Unavailable',
 }
@@ -185,7 +197,7 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
   const projectPaths = new Map(projects.map((project) => [project.id, project.path]))
   return Object.fromEntries(
     Object.entries(loaded).map(([id, terminal]) => {
-      const wasExternal = terminal.status === 'external'
+      const wasWindow = terminal.status === 'window'
       const projectPath = projectPaths.get(terminal.projectId)
       const commandIsValid = commandBelongsToTerminal(
         terminal,
@@ -198,14 +210,14 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
           ...terminal,
           command: commandIsValid ? terminal.command : '',
           lastCommand: commandIsValid ? terminal.lastCommand : undefined,
-          status: wasExternal ? 'idle' : terminal.status,
+          status: wasWindow ? 'idle' : terminal.status,
           busy: false,
           pid: undefined,
           exitCode: null,
           restoreOnSelect: false,
           eventLog:
-            wasExternal
-              ? [event('External Terminal window is independent after app restart.'), ...(terminal.eventLog ?? [])].slice(0, 12)
+            wasWindow
+              ? [event('Window Terminal window is independent after app restart.'), ...(terminal.eventLog ?? [])].slice(0, 12)
               : terminal.eventLog ?? [],
         },
       ]
@@ -387,7 +399,7 @@ function App() {
     if (!isStateLoaded) return
     if (!window.terminalHost) {
       Promise.resolve().then(() => {
-        setNotice('This is a browser preview. Start Electron to open external Terminal windows.')
+        setNotice('This is a browser preview. Start Electron to dock native Terminal windows.')
       })
       return
     }
@@ -545,7 +557,7 @@ function App() {
     if (!window.terminalHost) {
       attachTerminal({
         ...terminal,
-        eventLog: [event('Electron preload is unavailable. Start the desktop app to open external Terminal windows.')],
+        eventLog: [event('Electron preload is unavailable. Start the desktop app to dock native Terminal windows.')],
       })
       setNotice('Electron runtime is not connected. Cannot create terminal shell entry.')
       return
@@ -566,15 +578,15 @@ function App() {
         status: 'idle',
         busy: false,
         pid: undefined,
-        eventLog: [event('Marked idle. External Terminal process was not touched.'), ...(current[id]?.eventLog ?? [])].slice(0, 12),
+        eventLog: [event('Marked idle. Window Terminal process was not touched.'), ...(current[id]?.eventLog ?? [])].slice(0, 12),
       },
     }))
-    setNotice('Marked idle without stopping any external process.')
+    setNotice('Marked idle without stopping any window process.')
   }
 
-  const openExternalTerminal = useCallback(async (terminal: TerminalModel) => {
-    if (!window.terminalHost?.openExternal) {
-      setNotice('Electron runtime is not connected. Cannot open macOS Terminal.')
+  const dockTerminalWindow = useCallback(async (terminal: TerminalModel, bounds?: WindowDockBounds) => {
+    if (!window.terminalHost?.openWindow) {
+      setNotice('Electron runtime is not connected. Cannot dock Terminal window.')
       return false
     }
     if (startingTerminalIdsRef.current.has(terminal.id)) {
@@ -586,16 +598,17 @@ function App() {
     try {
       const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
       const command = visibleLaunchCommand(terminal, projectPath)
-      const runtime = await window.terminalHost.openExternal({
+      const runtime = await window.terminalHost.openWindow({
         id: terminal.id,
         cwd: terminal.cwd || projectPath || activeProject.path,
         command,
+        bounds,
       })
       setTerminals((current) => ({
         ...current,
         [terminal.id]: {
           ...current[terminal.id],
-          status: 'external',
+          status: 'window',
           busy: false,
           pid: undefined,
           shell: runtime.app,
@@ -604,14 +617,14 @@ function App() {
           exitCode: null,
           restoreOnSelect: false,
           eventLog: [
-            event(command ? 'Opened external Terminal with launch command.' : 'Opened external Terminal at directory.'),
+            event(command ? 'Docked Terminal window with launch command.' : 'Docked Terminal window at directory.'),
             ...(current[terminal.id]?.eventLog ?? []),
           ].slice(0, 12),
         },
       }))
       setActiveTerminalId(terminal.id)
       setSidebarPanel('terminals')
-      setNotice(`Opened in macOS Terminal: ${terminal.name}`)
+      setNotice(`Docked Terminal window: ${terminal.name}`)
       return true
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -624,7 +637,7 @@ function App() {
           eventLog: [event(`Open failed: ${message}`), ...(current[terminal.id]?.eventLog ?? [])].slice(0, 12),
         },
       }))
-      setNotice(`Open external Terminal failed: ${message}`)
+      setNotice(`Dock Terminal window failed: ${message}`)
       return false
     } finally {
       startingTerminalIdsRef.current.delete(terminal.id)
@@ -638,7 +651,7 @@ function App() {
       setNotice('This terminal has no launch command to open.')
       return
     }
-    await openExternalTerminal(terminal)
+    await dockTerminalWindow(terminal)
   }
 
   const closeTerminal = (id: string) => {
@@ -658,7 +671,7 @@ function App() {
       const nextId = activeProject.terminalIds.find((terminalId) => terminalId !== id) ?? null
       setActiveTerminalId(nextId)
     }
-    setNotice('Terminal shell entry removed. External process was not touched.')
+    setNotice('Terminal shell entry removed. Window process was not touched.')
   }
 
   const renameProject = (id: string, name: string) => {
@@ -817,7 +830,7 @@ function App() {
 
     if (sidebarPanel === 'terminals') {
       if (!activeTerminals.length) {
-        return <PanelEmpty title={activeProject.name} text="Click Add Terminal to create an external terminal shell entry." />
+        return <PanelEmpty title={activeProject.name} text="Click Add Terminal to create a native Terminal window entry." />
       }
       return activeTerminals.map((terminal) => (
         <TerminalCard
@@ -825,13 +838,13 @@ function App() {
           terminal={terminal}
           active={terminal.id === activeTerminal?.id}
           onSelect={() => setActiveTerminalId(terminal.id)}
-          onOpen={() => openExternalTerminal(terminal)}
+          onOpen={(bounds) => dockTerminalWindow(terminal, bounds)}
           onResizeHeight={(height) => resizeTerminalHeight(terminal.id, height)}
         >
           <TerminalPane
             terminal={terminal}
             projectPath={activeProject.path}
-            onOpen={() => openExternalTerminal(terminal)}
+            onOpen={(bounds) => dockTerminalWindow(terminal, bounds)}
           />
         </TerminalCard>
       ))
@@ -1155,7 +1168,7 @@ function App() {
               <dl className="detailTable">
                 <div>
                   <dt>Status</dt>
-                  <dd className={terminalIndicatorStatus(activeTerminal) === 'external' ? 'greenText' : activeTerminal.status === 'failed' ? 'redText' : ''}>
+                  <dd className={terminalIndicatorStatus(activeTerminal) === 'window' ? 'greenText' : activeTerminal.status === 'failed' ? 'redText' : ''}>
                     {terminalStatusLabel(activeTerminal)}
                   </dd>
                 </div>
@@ -1196,7 +1209,7 @@ function App() {
                 {activeTerminal.eventLog.map((event, index) => (
                   <div key={`${event.message}-${index}`}>
                     <time>{formatTime(event.time)}</time>
-                    <i className={activeTerminal.status === 'failed' ? 'red' : terminalIndicatorStatus(activeTerminal) === 'external' ? '' : 'yellow'} />
+                    <i className={activeTerminal.status === 'failed' ? 'red' : terminalIndicatorStatus(activeTerminal) === 'window' ? '' : 'yellow'} />
                     <span>{event.message}</span>
                   </div>
                 ))}
@@ -1222,7 +1235,7 @@ function App() {
                   <div><dt>Shell</dt><dd>{activeTerminal.shell || 'Not started'}</dd></div>
                   <div><dt>Directory</dt><dd>{activeTerminal.cwd || '-'}</dd></div>
                 </dl>
-                <button type="button" className="showAll" onClick={() => markTerminalIdle(activeTerminal.id)} disabled={activeTerminal.status !== 'external'}>Mark Idle</button>
+                <button type="button" className="showAll" onClick={() => markTerminalIdle(activeTerminal.id)} disabled={activeTerminal.status !== 'window'}>Mark Idle</button>
               </section>
             )}
           </>
@@ -1303,10 +1316,16 @@ function TerminalCard({
   active: boolean
   children: ReactNode
   onSelect: () => void
-  onOpen: () => void
+  onOpen: (bounds?: WindowDockBounds) => void
   onResizeHeight: (height: number) => void
 }) {
   const cardRef = useRef<HTMLElement | null>(null)
+  const cardBounds = () => {
+    const rect = cardRef.current?.getBoundingClientRect()
+    return rect
+      ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+      : undefined
+  }
 
   const startResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -1354,7 +1373,7 @@ function TerminalCard({
           className="iconButton"
           onClick={(event) => {
             event.stopPropagation()
-            onOpen()
+            onOpen(cardBounds())
           }}
           aria-label={`Open ${terminal.name} in macOS Terminal`}
         >
@@ -1379,32 +1398,40 @@ function TerminalPane({
 }: {
   terminal: TerminalModel
   projectPath: string
-  onOpen: () => void
+  onOpen: (bounds?: WindowDockBounds) => void
 }) {
+  const paneRef = useRef<HTMLDivElement | null>(null)
   const command = visibleLaunchCommand(terminal, projectPath)
+  const paneBounds = () => {
+    const rect = paneRef.current?.getBoundingClientRect()
+    return rect
+      ? { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+      : undefined
+  }
 
   return (
     <div
+      ref={paneRef}
       className="terminalShellPane"
       role="button"
       tabIndex={0}
-      onClick={onOpen}
+      onClick={() => onOpen(paneBounds())}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onOpen()
+          onOpen(paneBounds())
         }
       }}
     >
       <div className="terminalShellEmpty">
         <TerminalSquare size={26} />
         <span>{statusText[terminal.status]}</span>
-        <small>External macOS Terminal window. This app does not own or kill the process.</small>
+        <small>Native Terminal window docked to this workspace area. This app does not own or kill the process.</small>
       </div>
       {command ? <pre className="terminalShellCommand">{command}</pre> : null}
-      <button type="button" className="terminalShellOpen" onClick={(event) => { event.stopPropagation(); onOpen() }}>
+      <button type="button" className="terminalShellOpen" onClick={(event) => { event.stopPropagation(); onOpen(paneBounds()) }}>
         <Play size={14} />
-        Open in Terminal
+        Dock Window
       </button>
     </div>
   )
@@ -1460,7 +1487,7 @@ function formatUptime(createdAt: number | undefined, status: RuntimeStatus) {
   const minutes = Math.floor(seconds / 60)
   const remainder = seconds % 60
   const value = minutes ? `${minutes}m ${remainder}s` : `${remainder}s`
-  return status === 'external' ? value : `${value} since update`
+  return status === 'window' ? value : `${value} since update`
 }
 
 function formatDateTime(value: number | undefined) {
