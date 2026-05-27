@@ -1717,18 +1717,30 @@ function TerminalPane({
 
   if (terminal.status !== 'running') {
     return (
-      <div className="terminalRestorePane">
+      <div
+        className="terminalRestorePane"
+        role="button"
+        tabIndex={0}
+        onClick={onStart}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onStart()
+          }
+        }}
+      >
         {transcript ? (
           <pre className="terminalTranscript terminalRestoreHistory">{transcript}</pre>
         ) : (
           <div className="terminalRestoreEmpty">
             <TerminalSquare size={24} />
             <span>{statusText[terminal.status]}</span>
+            <small>Click to start a real terminal</small>
           </div>
         )}
-        <button type="button" className="terminalRestoreStart" onClick={onStart}>
+        <button type="button" className="terminalRestoreStart" onClick={(event) => { event.stopPropagation(); onStart() }}>
           <Play size={14} />
-          Start
+          Start Terminal
         </button>
       </div>
     )
