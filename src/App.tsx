@@ -394,6 +394,7 @@ function App() {
   const [isStateLoaded, setIsStateLoaded] = useState(false)
   const [hasPersistedState, setHasPersistedState] = useState(false)
   const [terminalTranscripts, setTerminalTranscripts] = useState<Record<string, string>>({})
+  const startingTerminalIdsRef = useRef(new Set<string>())
   const persistedStateRef = useRef<PersistedWorkspaceState | null>(null)
   const lastSavedStateJsonRef = useRef('')
 
@@ -745,12 +746,17 @@ function App() {
       setNotice('Electron runtime is not connected. Cannot start terminal.')
       return false
     }
+    if (startingTerminalIdsRef.current.has(terminal.id)) {
+      setNotice(`Start already in progress: ${terminal.name}`)
+      return false
+    }
     if (terminal.status === 'running') {
       setActiveTerminalId(terminal.id)
       setSidebarPanel('terminals')
       return true
     }
 
+    startingTerminalIdsRef.current.add(terminal.id)
     try {
       const runtime = await window.terminalHost.create({
         id: terminal.id,
@@ -793,16 +799,10 @@ function App() {
       }))
       setNotice(`Terminal start failed: ${message}`)
       return false
+    } finally {
+      startingTerminalIdsRef.current.delete(terminal.id)
     }
   }, [])
-
-  useEffect(() => {
-    if (!isStateLoaded || sidebarPanel !== 'terminals' || !activeTerminal?.restoreOnSelect) return
-    const timer = window.setTimeout(() => {
-      startTerminal(activeTerminal)
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [activeTerminal, isStateLoaded, sidebarPanel, startTerminal])
 
   const rerunTerminal = async (terminal: TerminalModel) => {
     if (!window.terminalHost) {
@@ -1055,6 +1055,7 @@ function App() {
             terminal={terminal}
             transcript={terminalTranscripts[terminal.id] ?? terminal.transcript ?? ''}
             onFocus={() => setActiveTerminalId(terminal.id)}
+            onStart={() => startTerminal(terminal)}
             onResize={(cols, rows) => window.terminalHost?.resize({ id: terminal.id, cols, rows })}
             onInput={(data) => {
               const shouldWriteToPty = !isRememberCommandEvent(data)
@@ -1613,12 +1614,14 @@ function TerminalPane({
   terminal,
   transcript,
   onFocus,
+  onStart,
   onInput,
   onResize,
 }: {
   terminal: TerminalModel
   transcript: string
   onFocus: () => void
+  onStart: () => void
   onInput: (data: string) => void
   onResize: (cols: number, rows: number) => void
 }) {
@@ -1723,6 +1726,10 @@ function TerminalPane({
             <span>{statusText[terminal.status]}</span>
           </div>
         )}
+        <button type="button" className="terminalRestoreStart" onClick={onStart}>
+          <Play size={14} />
+          Start
+        </button>
       </div>
     )
   }
