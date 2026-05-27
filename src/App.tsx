@@ -149,7 +149,7 @@ const terminalIndicatorStatus = (terminal: TerminalModel): RuntimeStatus =>
 const terminalStatusLabel = (terminal: TerminalModel) =>
   statusText[terminal.status]
 
-const maxTranscriptLength = 40000
+const maxTranscriptLength = 12000
 
 const appendTranscript = (value: string | undefined, data: string) =>
   `${value ?? ''}${data}`.slice(-maxTranscriptLength)
@@ -872,6 +872,11 @@ function App() {
       delete next[id]
       return next
     })
+    setTerminalTranscripts((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
     setProjects((current) =>
       current.map((project) =>
         project.id === activeProject.id
@@ -937,10 +942,13 @@ function App() {
         : projects.find((item) => item.id === activeProject.id) ?? nextProjects[0]
 
     const nextTerminals = { ...terminals }
+    const nextTranscripts = { ...terminalTranscripts }
     for (const terminalId of project.terminalIds) {
       delete nextTerminals[terminalId]
+      delete nextTranscripts[terminalId]
     }
     setTerminals(nextTerminals)
+    setTerminalTranscripts(nextTranscripts)
     setProjects(nextProjects)
     setExpandedProjectIds((current) =>
       current.filter((projectId) => projectId !== project.id && nextProjects.some((item) => item.id === projectId)),
@@ -1653,6 +1661,7 @@ function TerminalPane({
   }, [terminal.id, transcript])
 
   useEffect(() => {
+    if (terminal.status !== 'running') return
     if (!containerRef.current || termRef.current) return
     const term = new Terminal({
       cursorBlink: true,
@@ -1690,10 +1699,16 @@ function TerminalPane({
     onResizeRef.current(term.cols, term.rows)
     let lastSize = `${term.cols}x${term.rows}`
     let resizeFrame = 0
+    let isVisible = true
 
     const resizeObserver = new ResizeObserver(() => {
+      if (!isVisible) return
       if (resizeFrame) return
       resizeFrame = window.requestAnimationFrame(() => {
+        if (!isVisible) {
+          resizeFrame = 0
+          return
+        }
         resizeFrame = 0
         fit.fit()
         const nextSize = `${term.cols}x${term.rows}`
@@ -1704,6 +1719,17 @@ function TerminalPane({
       })
     })
     resizeObserver.observe(containerRef.current)
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      isVisible = Boolean(entry?.isIntersecting)
+      if (!isVisible) return
+      fit.fit()
+      const nextSize = `${term.cols}x${term.rows}`
+      if (nextSize !== lastSize) {
+        lastSize = nextSize
+        onResizeRef.current(term.cols, term.rows)
+      }
+    })
+    visibilityObserver.observe(containerRef.current)
 
     const dataListener = (event: Event) => {
       term.write((event as CustomEvent<string>).detail)
@@ -1713,6 +1739,7 @@ function TerminalPane({
     return () => {
       window.removeEventListener(`terminal-data:${terminal.id}`, dataListener)
       if (resizeFrame) window.cancelAnimationFrame(resizeFrame)
+      visibilityObserver.disconnect()
       resizeObserver.disconnect()
       term.dispose()
       termRef.current = null
@@ -1740,15 +1767,11 @@ function TerminalPane({
           }
         }}
       >
-        {transcript ? (
-          <pre className="terminalTranscript terminalRestoreHistory">{transcript}</pre>
-        ) : (
-          <div className="terminalRestoreEmpty">
-            <TerminalSquare size={24} />
-            <span>{statusText[terminal.status]}</span>
-            <small>Click to start a real terminal</small>
-          </div>
-        )}
+        <div className="terminalRestoreEmpty">
+          <TerminalSquare size={24} />
+          <span>{statusText[terminal.status]}</span>
+          <small>Click Start Terminal to create a PTY</small>
+        </div>
         <button type="button" className="terminalRestoreStart" onClick={(event) => { event.stopPropagation(); onStart() }}>
           <Play size={14} />
           Start Terminal
