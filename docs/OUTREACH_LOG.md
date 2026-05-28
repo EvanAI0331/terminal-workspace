@@ -30,6 +30,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | X post copy | Added | `docs/X_POSTS.md` includes launch, positioning, and feedback posts |
 | 2026-05-28 | 12-hour growth maintenance | Active | Automation `terminal-workspace-star-growth-maintenance` checks stars, PRs, and launch tracking every 12 hours |
 | 2026-05-28 | Experimental Homebrew tap | Published | https://github.com/EvanAI0331/homebrew-terminal-workspace |
+| 2026-05-28 | Alternatives page | Added | `docs/ALTERNATIVES.md` compares terminal workspace options for search and conversion |
 
 ## Current Metrics
 
@@ -37,6 +38,7 @@ Track concrete distribution work for Terminal Workspace.
 | --- | ---: | --- |
 | 2026-05-28 | 1 | Baseline after publishing release, landing page, and first four outreach PRs |
 | 2026-05-28 | 1 | Release downloads still 0 across dmg/zip assets; external traffic remains the bottleneck |
+| 2026-05-28 | 1 | Release dmg downloads now 1 after Homebrew/download verification; organic traffic still not established |
 
 ## Ready To Post
 

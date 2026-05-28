@@ -25,6 +25,7 @@ Completed:
 
 - README with clear positioning and Star CTA
 - Feature comparison against Terminal/iTerm, Warp, and tmux
+- Alternatives page for terminal workspace comparison and search-driven conversion
 - Roadmap
 - Contributor guide
 - Issue templates

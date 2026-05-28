@@ -51,6 +51,8 @@ Most terminal apps optimize the shell prompt. Terminal Workspace optimizes the *
 
 ## How It Differs
 
+See [Terminal Workspace Alternatives](./docs/ALTERNATIVES.md) for a more detailed comparison with Terminal, iTerm2, Warp, tmux, Zellij, WezTerm, and other terminal workspace tools.
+
 | Tool | Best at | Gap Terminal Workspace targets |
 | --- | --- | --- |
 | Terminal / iTerm2 | Lightweight shell windows | Weak cross-project organization and launch-command memory |
