@@ -16,6 +16,15 @@ Launch feedback: https://github.com/EvanAI0331/terminal-workspace/discussions/6
 
 Good next contributions: https://github.com/EvanAI0331/terminal-workspace/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22
 
+Try it on macOS:
+
+```bash
+brew tap EvanAI0331/terminal-workspace
+brew install --cask terminal-workspace
+```
+
+Or download the latest `.dmg` / `.zip` from [GitHub Releases](https://github.com/EvanAI0331/terminal-workspace/releases/latest).
+
 ![Terminal Workspace running](./site/terminal-workspace-1440.png)
 
 ![Terminal Workspace demo](./docs/assets/terminal-workspace-demo.gif)

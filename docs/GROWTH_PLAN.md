@@ -59,6 +59,7 @@ Still needed:
 - Signed and notarized macOS distribution
 - Manual social/community posting from the maintainer account
 - Follow-up on open external directory PRs
+- Real external traffic: current release asset downloads are still at 0
 
 ## Distribution Plan
 

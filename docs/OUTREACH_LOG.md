@@ -36,6 +36,7 @@ Track concrete distribution work for Terminal Workspace.
 | Date | Stars | Notes |
 | --- | ---: | --- |
 | 2026-05-28 | 1 | Baseline after publishing release, landing page, and first four outreach PRs |
+| 2026-05-28 | 1 | Release downloads still 0 across dmg/zip assets; external traffic remains the bottleneck |
 
 ## Ready To Post
 
