@@ -34,6 +34,9 @@ Completed:
 - macOS dmg and zip release assets
 - Social preview card for external sharing
 - Direct share links for X, Hacker News, and LinkedIn
+- External PR submitted to `devtoolsd/awesome-devtools`
+- External PR submitted to `cdleon/awesome-terminals`
+- Code of Conduct and Security Policy
 
 Still needed:
 
