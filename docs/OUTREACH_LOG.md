@@ -27,6 +27,8 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | README screenshot link | Fixed | Changed broken root image path to tracked `site/terminal-workspace-1440.png` |
 | 2026-05-28 | Distribution copy | Fixed | Removed stale source-first and v0.1.1 wording from README and launch docs |
 | 2026-05-28 | Long-form launch article | Added | `docs/LAUNCH_ARTICLE.md` for blogs, dev.to, newsletters, and forums |
+| 2026-05-28 | X post copy | Added | `docs/X_POSTS.md` includes launch, positioning, and feedback posts |
+| 2026-05-28 | 12-hour growth maintenance | Active | Automation `terminal-workspace-star-growth-maintenance` checks stars, PRs, and launch tracking every 12 hours |
 
 ## Current Metrics
 

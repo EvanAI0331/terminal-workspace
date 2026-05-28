@@ -35,6 +35,7 @@ Completed:
 - Social preview card for external sharing
 - Direct share links for X, Hacker News, and LinkedIn
 - Long-form launch article for blogs, dev.to, newsletters, and community forums
+- X post variants for launch, positioning, and feedback follow-up
 - External PR submitted to `devtoolsd/awesome-devtools`
 - External PR submitted to `cdleon/awesome-terminals`
 - External PR submitted to `serhii-londar/open-source-mac-os-apps`
@@ -47,6 +48,7 @@ Completed:
 - Completed packaged-release issue closed after v0.1.3 verification
 - Follow-up issues opened for notarization and many-terminal performance profiling
 - Launch-week distribution checklist opened for social and community posting
+- 12-hour growth maintenance automation created for stars, PRs, and launch tracking
 - README screenshot path fixed to use a tracked asset
 - Stale source-first launch copy removed from README and promotion docs
 - External PR review feedback addressed for `arran4/awesome-terminal-multiplexers`

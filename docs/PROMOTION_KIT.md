@@ -39,6 +39,8 @@ Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
 
+More X post variants are in [X_POSTS.md](./X_POSTS.md).
+
 ## Long-Form Post
 
 Use [LAUNCH_ARTICLE.md](./LAUNCH_ARTICLE.md) for dev.to, Medium, personal blogs, forum posts, or community newsletters.
