@@ -98,6 +98,19 @@ h1 {
   margin: 34px 0 18px;
 }
 
+.shareLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.shareLinks a {
+  border-bottom: 1px solid rgba(0, 229, 255, 0.45);
+}
+
 .primary,
 .secondary {
   display: inline-flex;

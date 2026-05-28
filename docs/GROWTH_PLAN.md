@@ -32,10 +32,11 @@ Completed:
 - GitHub repo topics and description
 - GitHub Pages landing page
 - macOS dmg and zip release assets
+- Social preview card for external sharing
+- Direct share links for X, Hacker News, and LinkedIn
 
 Still needed:
 
-- Repo social preview image
 - Signed and notarized macOS distribution
 - Broader external distribution and reposting cadence
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0b1016"/>
+  <rect x="42" y="42" width="1116" height="546" rx="28" fill="#101820" stroke="#243241" stroke-width="2"/>
+  <text x="78" y="132" fill="#00e5ff" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">Terminal Workspace</text>
+  <text x="78" y="220" fill="#eef5ff" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700">One workspace for every project terminal</text>
+  <text x="78" y="300" fill="#9fb1c2" font-family="Arial, Helvetica, sans-serif" font-size="30">Projects · PTYs · Launch Commands · Project Inspector</text>
+  <text x="78" y="378" fill="#8bd17c" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="700">For developers running many local apps and services</text>
+  <g transform="translate(78 456)">
+    <rect width="248" height="58" rx="8" fill="#00e5ff"/>
+    <text x="26" y="38" fill="#001018" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700">Download macOS</text>
+  </g>
+  <text x="78" y="552" fill="#9fb1c2" font-family="Arial, Helvetica, sans-serif" font-size="26">github.com/EvanAI0331/terminal-workspace</text>
+</svg>
