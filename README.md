@@ -10,6 +10,8 @@ Terminal Workspace helps full-stack, AI, Electron, and local-first developers ke
 
 If your daily workflow involves 10+ terminal windows across several repos, this project is built for you. Star the repo to follow packaged releases, terminal groups, project templates, and command-palette work.
 
+Landing page: https://evanai0331.github.io/terminal-workspace/
+
 ![Terminal Workspace running](./terminal-workspace-1440.png)
 
 ![Terminal Workspace demo](./docs/assets/terminal-workspace-demo.gif)

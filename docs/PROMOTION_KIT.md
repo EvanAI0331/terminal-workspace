@@ -12,6 +12,7 @@ I built Terminal Workspace for developers who keep too many terminal windows ope
 
 macOS downloads are available in GitHub Releases.
 
+Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 
 ## X / Twitter
@@ -28,6 +29,7 @@ So I built Terminal Workspace: a cross-project multi-terminal workspace for loca
 - Lightweight inactive terminals
 - macOS dmg/zip release
 
+Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
 
@@ -42,6 +44,7 @@ It is not a shell replacement. It is a workspace around the many shells develope
 
 The latest release includes macOS dmg/zip downloads.
 
+Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
 
@@ -65,6 +68,7 @@ Inactive terminals are lightweight and do not create xterm/PTY sessions until st
 Source-first for now. Packaged macOS releases are on the roadmap.
 Update: macOS dmg/zip downloads are now available in GitHub Releases.
 
+Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
 
