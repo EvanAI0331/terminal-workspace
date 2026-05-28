@@ -36,19 +36,23 @@ Completed:
 - Direct share links for X, Hacker News, and LinkedIn
 - External PR submitted to `devtoolsd/awesome-devtools`
 - External PR submitted to `cdleon/awesome-terminals`
+- External PR submitted to `serhii-londar/open-source-mac-os-apps`
+- External PR submitted to `jaywcjlove/awesome-mac`
 - Code of Conduct and Security Policy
 
 Still needed:
 
 - Signed and notarized macOS distribution
-- Broader external distribution and reposting cadence
+- Manual social/community posting from the maintainer account
+- Follow-up on open external directory PRs
 
 ## Distribution Plan
 
 ### Day 1
 
-- Publish v0.1.1 release.
-- Post launch copy on X, LinkedIn, Hacker News "Show HN", Reddit, and relevant Discord/Slack communities.
+- Publish the current release and landing page.
+- Submit high-fit directory PRs for macOS, terminal, and devtools discovery.
+- Post launch copy on X, LinkedIn, Hacker News "Show HN", Reddit, and relevant Discord/Slack communities from the maintainer account.
 - Ask 10-20 developer friends to try and star if useful.
 
 ### Day 2

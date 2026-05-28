@@ -8,6 +8,14 @@ Track concrete distribution work for Terminal Workspace.
 | --- | --- | --- | --- | --- |
 | 2026-05-28 | devtoolsd/awesome-devtools | https://github.com/devtoolsd/awesome-devtools/pull/241 | Open | Adds Terminal Workspace to CLIs & Terminal Tools |
 | 2026-05-28 | cdleon/awesome-terminals | https://github.com/cdleon/awesome-terminals/pull/75 | Open | Adds Terminal Workspace to macOS terminal tools |
+| 2026-05-28 | serhii-londar/open-source-mac-os-apps | https://github.com/serhii-londar/open-source-mac-os-apps/pull/1130 | Open | Adds Terminal Workspace to the macOS open-source apps index |
+| 2026-05-28 | jaywcjlove/awesome-mac | https://github.com/jaywcjlove/awesome-mac/pull/2108 | Open | Adds Terminal Workspace to Terminal Apps |
+
+## Current Metrics
+
+| Date | Stars | Notes |
+| --- | ---: | --- |
+| 2026-05-28 | 1 | Baseline after publishing release, landing page, and first four outreach PRs |
 
 ## Ready To Post
 
