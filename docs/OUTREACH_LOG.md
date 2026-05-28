@@ -29,6 +29,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | Long-form launch article | Added | `docs/LAUNCH_ARTICLE.md` for blogs, dev.to, newsletters, and forums |
 | 2026-05-28 | X post copy | Added | `docs/X_POSTS.md` includes launch, positioning, and feedback posts |
 | 2026-05-28 | 12-hour growth maintenance | Active | Automation `terminal-workspace-star-growth-maintenance` checks stars, PRs, and launch tracking every 12 hours |
+| 2026-05-28 | Experimental Homebrew tap | Published | https://github.com/EvanAI0331/homebrew-terminal-workspace |
 
 ## Current Metrics
 

@@ -90,6 +90,15 @@ Available assets:
 
 Current builds are ad-hoc signed and not notarized yet. If macOS blocks the first launch, open **System Settings -> Privacy & Security** and approve Terminal Workspace.
 
+Experimental Homebrew tap:
+
+```bash
+brew tap EvanAI0331/terminal-workspace
+brew install --cask terminal-workspace
+```
+
+The Homebrew tap is available for convenience, but notarized distribution is still tracked separately.
+
 ### Run From Source
 
 Requirements:

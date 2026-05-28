@@ -17,6 +17,7 @@ https://evanai0331.github.io/terminal-workspace/
 I built Terminal Workspace for developers who keep too many terminal windows open across multiple repos. It gives each project its own terminal workspace, saves multiline launch commands, inspects local project scripts/services/env/docs, and only creates real PTYs after explicit user action.
 
 macOS downloads are available in GitHub Releases.
+An experimental Homebrew tap is available with `brew tap EvanAI0331/terminal-workspace && brew install --cask terminal-workspace`.
 
 Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace

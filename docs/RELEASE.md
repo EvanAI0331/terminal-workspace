@@ -34,6 +34,7 @@ Current:
 
 - macOS `.zip`
 - macOS `.dmg`
+- Experimental Homebrew cask tap at https://github.com/EvanAI0331/homebrew-terminal-workspace
 
 Planned:
 

@@ -32,6 +32,7 @@ Completed:
 - GitHub repo topics and description
 - GitHub Pages landing page
 - macOS dmg and zip release assets
+- Experimental Homebrew cask tap
 - Social preview card for external sharing
 - Direct share links for X, Hacker News, and LinkedIn
 - Long-form launch article for blogs, dev.to, newsletters, and community forums
