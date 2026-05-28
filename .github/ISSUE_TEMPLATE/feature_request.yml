@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest a workflow improvement for Terminal Workspace.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow problem
+      description: What local-development workflow is hard today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should Terminal Workspace do?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: How do you handle this today?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Terminal management
+        - Project Inspector
+        - Launch commands
+        - Persistence
+        - Packaging
+        - Performance
+        - Documentation
+        - Other

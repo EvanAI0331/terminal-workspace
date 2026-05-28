@@ -41,7 +41,7 @@
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12"
   },
-  "description": "A cross-project multi-terminal desktop workspace for developers.",
+  "description": "Cross-project multi-terminal workspace for local development stacks.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -54,10 +54,15 @@
   "keywords": [
     "terminal",
     "electron",
-    "xterm",
+    "xtermjs",
     "pty",
+    "node-pty",
     "developer-tools",
+    "devtools",
+    "local-development",
     "workspace",
-    "multi-terminal"
+    "multi-terminal",
+    "macos",
+    "desktop-app"
   ]
 }

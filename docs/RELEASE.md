@@ -1,0 +1,60 @@
+# Release Checklist
+
+Terminal Workspace is currently source-first. Use this checklist before publishing a public GitHub release.
+
+## Release Goals
+
+- Make the app easy to try in under one minute.
+- Show the multi-project workflow clearly.
+- Keep release notes honest about current limitations.
+
+## Before Release
+
+- Run `npm run lint`.
+- Run `npm run build`.
+- Test `npm run desktop` on macOS.
+- Verify a fresh install can rebuild `node-pty`.
+- Verify no terminal PTY is auto-created on app restart.
+- Verify inactive terminals stay lightweight.
+- Verify project settings persist after restart.
+- Verify launch-command copy uses the active terminal's saved command.
+
+## Assets
+
+Prepare:
+
+- A short GIF showing project switching, terminal creation, Launch Command copy, and Project Inspector.
+- One clean screenshot for the GitHub README.
+- A release screenshot for the GitHub release page.
+
+## Packaging Targets
+
+Planned:
+
+- macOS `.zip`
+- macOS `.dmg`
+- Signed and notarized builds
+
+Suggested tooling:
+
+- Electron Builder
+- Electron Forge
+
+## Release Notes Template
+
+```markdown
+## Terminal Workspace vX.Y.Z
+
+### Highlights
+
+- ...
+
+### Fixes
+
+- ...
+
+### Known Limits
+
+- Source-first install still requires Node.js, npm, and Xcode Command Line Tools.
+- Packaged releases are not notarized yet.
+```
