@@ -34,6 +34,7 @@ Completed:
 - macOS dmg and zip release assets
 - Social preview card for external sharing
 - Direct share links for X, Hacker News, and LinkedIn
+- Long-form launch article for blogs, dev.to, newsletters, and community forums
 - External PR submitted to `devtoolsd/awesome-devtools`
 - External PR submitted to `cdleon/awesome-terminals`
 - External PR submitted to `serhii-londar/open-source-mac-os-apps`
@@ -47,6 +48,7 @@ Completed:
 - Follow-up issues opened for notarization and many-terminal performance profiling
 - README screenshot path fixed to use a tracked asset
 - Stale source-first launch copy removed from README and promotion docs
+- External PR review feedback addressed for `arran4/awesome-terminal-multiplexers`
 
 Still needed:
 

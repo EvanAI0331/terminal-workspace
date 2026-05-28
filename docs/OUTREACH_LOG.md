@@ -12,6 +12,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | jaywcjlove/awesome-mac | https://github.com/jaywcjlove/awesome-mac/pull/2108 | Open | Adds Terminal Workspace to Terminal Apps |
 | 2026-05-28 | arran4/awesome-terminal-multiplexers | https://github.com/arran4/awesome-terminal-multiplexers/pull/11 | Open | Adds Terminal Workspace as a multi-terminal utility |
 | 2026-05-28 | wflixu/macOS-Apps | https://github.com/wflixu/macOS-Apps/pull/1 | Open | Adds Terminal Workspace to macOS development tools |
+| 2026-05-28 | arran4/awesome-terminal-multiplexers review | https://github.com/arran4/awesome-terminal-multiplexers/pull/11#issuecomment-4562862219 | Addressed | Sorted entry as requested by reviewer |
 
 ## Repository Setup
 
@@ -24,6 +25,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | Performance profiling issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/7 |
 | 2026-05-28 | README screenshot link | Fixed | Changed broken root image path to tracked `site/terminal-workspace-1440.png` |
 | 2026-05-28 | Distribution copy | Fixed | Removed stale source-first and v0.1.1 wording from README and launch docs |
+| 2026-05-28 | Long-form launch article | Added | `docs/LAUNCH_ARTICLE.md` for blogs, dev.to, newsletters, and forums |
 
 ## Current Metrics
 
