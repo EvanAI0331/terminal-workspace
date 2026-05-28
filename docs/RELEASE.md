@@ -12,6 +12,7 @@ Terminal Workspace is currently source-first. Use this checklist before publishi
 
 - Run `npm run lint`.
 - Run `npm run build`.
+- Run `npm run pack:mac`.
 - Test `npm run desktop` on macOS.
 - Verify a fresh install can rebuild `node-pty`.
 - Verify no terminal PTY is auto-created on app restart.
@@ -39,6 +40,10 @@ Suggested tooling:
 
 - Electron Builder (`npm run pack:mac`)
 - Electron Forge
+
+## Current Signing Status
+
+The current packaging flow sets `CSC_IDENTITY_AUTO_DISCOVERY=false`, so release builds are ad-hoc signed and not notarized. This keeps community test builds available while signed/notarized distribution is still pending.
 
 ## Release Notes Template
 

@@ -10,6 +10,8 @@ Terminal Workspace is a cross-project multi-terminal workspace for developers ru
 
 I built Terminal Workspace for developers who keep too many terminal windows open across multiple repos. It gives each project its own terminal workspace, saves multiline launch commands, inspects local project scripts/services/env/docs, and only creates real PTYs after explicit user action.
 
+macOS downloads are available in GitHub Releases.
+
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 
 ## X / Twitter
@@ -24,6 +26,7 @@ So I built Terminal Workspace: a cross-project multi-terminal workspace for loca
 - Saved launch commands
 - Project Inspector
 - Lightweight inactive terminals
+- macOS dmg/zip release
 
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
@@ -36,6 +39,8 @@ Local development often turns into terminal-window management: frontend, API, qu
 Terminal Workspace is an open-source desktop app for organizing that workflow. It keeps projects, real PTY terminals, launch commands, and project inspection in one workspace.
 
 It is not a shell replacement. It is a workspace around the many shells developers already run.
+
+The latest release includes macOS dmg/zip downloads.
 
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```
@@ -58,6 +63,7 @@ It is an Electron desktop app with real PTYs via node-pty and xterm.js. The focu
 Inactive terminals are lightweight and do not create xterm/PTY sessions until started.
 
 Source-first for now. Packaged macOS releases are on the roadmap.
+Update: macOS dmg/zip downloads are now available in GitHub Releases.
 
 GitHub: https://github.com/EvanAI0331/terminal-workspace
 ```

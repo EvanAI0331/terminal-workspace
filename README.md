@@ -73,6 +73,19 @@ Terminal Workspace is not trying to replace your shell. It is a desktop control 
 
 ## Quick Start
 
+### Download for macOS
+
+Download the latest macOS build from [GitHub Releases](https://github.com/EvanAI0331/terminal-workspace/releases).
+
+Available assets:
+
+- `.dmg` for the normal drag-to-Applications install flow
+- `.zip` for users who prefer extracting the app directly
+
+Current builds are ad-hoc signed and not notarized yet. If macOS blocks the first launch, open **System Settings -> Privacy & Security** and approve Terminal Workspace.
+
+### Run From Source
+
 Requirements:
 
 - macOS
@@ -100,7 +113,7 @@ npm run lint
 npm run build
 ```
 
-Build a local macOS zip package:
+Build local macOS packages:
 
 ```bash
 npm run pack:mac
