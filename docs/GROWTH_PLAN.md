@@ -40,6 +40,9 @@ Completed:
 - External PR submitted to `jaywcjlove/awesome-mac`
 - Code of Conduct and Security Policy
 - GitHub Discussions enabled for launch feedback and feature requests
+- GitHub launch discussion posted
+- Completed packaged-release issue closed after v0.1.3 verification
+- Follow-up issues opened for notarization and many-terminal performance profiling
 
 Still needed:
 

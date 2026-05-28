@@ -16,6 +16,10 @@ Track concrete distribution work for Terminal Workspace.
 | Date | Action | Status | Notes |
 | --- | --- | --- | --- |
 | 2026-05-28 | GitHub Discussions | Enabled | Use for launch feedback, support questions, and roadmap requests |
+| 2026-05-28 | Launch discussion | Posted | https://github.com/EvanAI0331/terminal-workspace/discussions/6 |
+| 2026-05-28 | Packaged release issue | Closed | v0.1.3 includes macOS dmg and zip assets |
+| 2026-05-28 | Notarization issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/8 |
+| 2026-05-28 | Performance profiling issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/7 |
 
 ## Current Metrics
 
