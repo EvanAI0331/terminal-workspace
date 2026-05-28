@@ -37,6 +37,7 @@ Completed:
 - Social preview card for external sharing
 - Direct share links for X, Hacker News, and LinkedIn
 - Long-form launch article for blogs, dev.to, newsletters, and community forums
+- Launch directory submission package for Product Hunt, DevHunt, Uneed, early.tools, launchweek.dev, and newsletters
 - X post variants for launch, positioning, and feedback follow-up
 - External PR submitted to `devtoolsd/awesome-devtools`
 - External PR submitted to `cdleon/awesome-terminals`

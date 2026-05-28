@@ -46,6 +46,10 @@ More X post variants are in [X_POSTS.md](./X_POSTS.md).
 
 Use [LAUNCH_ARTICLE.md](./LAUNCH_ARTICLE.md) for dev.to, Medium, personal blogs, forum posts, or community newsletters.
 
+## Launch Directories
+
+Use [LAUNCH_DIRECTORY_SUBMISSIONS.md](./LAUNCH_DIRECTORY_SUBMISSIONS.md) for Product Hunt, DevHunt, Uneed, early.tools, launchweek.dev, newsletters, or community launch directories.
+
 ## LinkedIn
 
 ```text

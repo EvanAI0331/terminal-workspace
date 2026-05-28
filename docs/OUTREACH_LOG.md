@@ -33,6 +33,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | 12-hour growth maintenance | Active | Automation `terminal-workspace-star-growth-maintenance` checks stars, PRs, and launch tracking every 12 hours |
 | 2026-05-28 | Experimental Homebrew tap | Published | https://github.com/EvanAI0331/homebrew-terminal-workspace |
 | 2026-05-28 | Alternatives page | Added | `docs/ALTERNATIVES.md` compares terminal workspace options for search and conversion |
+| 2026-05-28 | Launch directory submission package | Added | `docs/LAUNCH_DIRECTORY_SUBMISSIONS.md` for Product Hunt, DevHunt, Uneed, early.tools, launchweek.dev, and newsletters |
 
 ## Current Metrics
 
