@@ -2,6 +2,10 @@
 
 **A cross-project terminal workspace for developers running many local apps.**
 
+[![Release](https://img.shields.io/github/v/release/EvanAI0331/terminal-workspace)](https://github.com/EvanAI0331/terminal-workspace/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Built with Electron](https://img.shields.io/badge/Built%20with-Electron-47848f)](https://www.electronjs.org/)
+
 Terminal Workspace helps full-stack, AI, Electron, and local-first developers keep frontend servers, backends, workers, tunnels, logs, and scripts in one desktop workspace without mixing project context.
 
 If your daily workflow involves 10+ terminal windows across several repos, this project is built for you. Star the repo to follow packaged releases, terminal groups, project templates, and command-palette work.
@@ -225,6 +229,8 @@ Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
 ## Distribution Status
 
 This repository is currently source-first. Packaged releases are planned. See [docs/RELEASE.md](./docs/RELEASE.md) for the release checklist.
+
+Growth and sharing assets live in [docs/GROWTH_PLAN.md](./docs/GROWTH_PLAN.md) and [docs/PROMOTION_KIT.md](./docs/PROMOTION_KIT.md).
 
 ## License
 
