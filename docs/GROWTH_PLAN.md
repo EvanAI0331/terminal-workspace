@@ -30,14 +30,14 @@ Completed:
 - Issue templates
 - Release checklist
 - GitHub repo topics and description
+- GitHub Pages landing page
+- macOS dmg and zip release assets
 
 Still needed:
 
-- 30-45 second demo GIF
-- v0.1.1 release notes
-- macOS packaged `.zip` or `.dmg`
 - Repo social preview image
-- Short landing page or GitHub Pages page
+- Signed and notarized macOS distribution
+- Broader external distribution and reposting cadence
 
 ## Distribution Plan
 
