@@ -46,6 +46,7 @@ Completed:
 - GitHub launch discussion posted
 - Completed packaged-release issue closed after v0.1.3 verification
 - Follow-up issues opened for notarization and many-terminal performance profiling
+- Launch-week distribution checklist opened for social and community posting
 - README screenshot path fixed to use a tracked asset
 - Stale source-first launch copy removed from README and promotion docs
 - External PR review feedback addressed for `arran4/awesome-terminal-multiplexers`

@@ -12,6 +12,10 @@ If your daily workflow involves 10+ terminal windows across several repos, this 
 
 Landing page: https://evanai0331.github.io/terminal-workspace/
 
+Launch feedback: https://github.com/EvanAI0331/terminal-workspace/discussions/6
+
+Good next contributions: https://github.com/EvanAI0331/terminal-workspace/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22help%20wanted%22
+
 ![Terminal Workspace running](./site/terminal-workspace-1440.png)
 
 ![Terminal Workspace demo](./docs/assets/terminal-workspace-demo.gif)

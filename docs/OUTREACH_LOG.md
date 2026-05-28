@@ -23,6 +23,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | Packaged release issue | Closed | v0.1.3 includes macOS dmg and zip assets |
 | 2026-05-28 | Notarization issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/8 |
 | 2026-05-28 | Performance profiling issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/7 |
+| 2026-05-28 | Launch-week distribution checklist | Open | https://github.com/EvanAI0331/terminal-workspace/issues/9 |
 | 2026-05-28 | README screenshot link | Fixed | Changed broken root image path to tracked `site/terminal-workspace-1440.png` |
 | 2026-05-28 | Distribution copy | Fixed | Removed stale source-first and v0.1.1 wording from README and launch docs |
 | 2026-05-28 | Long-form launch article | Added | `docs/LAUNCH_ARTICLE.md` for blogs, dev.to, newsletters, and forums |

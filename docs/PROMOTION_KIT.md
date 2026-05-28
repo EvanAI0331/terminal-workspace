@@ -128,3 +128,7 @@ terminal, electron, xtermjs, node-pty, developer-tools, devtools, local-developm
 - X: https://twitter.com/intent/tweet?text=Terminal%20Workspace%20is%20a%20cross-project%20multi-terminal%20workspace%20for%20local%20dev%20stacks&url=https%3A%2F%2Fevanai0331.github.io%2Fterminal-workspace%2F
 - Hacker News: https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fevanai0331.github.io%2Fterminal-workspace%2F&t=Terminal%20Workspace%2C%20a%20multi-project%20terminal%20manager%20for%20local%20dev%20stacks
 - LinkedIn: https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fevanai0331.github.io%2Fterminal-workspace%2F
+
+## Launch Tracking
+
+Use https://github.com/EvanAI0331/terminal-workspace/issues/9 to track which launch-week posts have actually been published.
