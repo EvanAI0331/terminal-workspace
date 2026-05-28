@@ -45,6 +45,7 @@ Completed:
 - External PR submitted to `arran4/awesome-terminal-multiplexers`
 - External PR submitted to `wflixu/macOS-Apps`
 - External PR submitted to `justin-j/awesome-mac-apps`
+- External PR submitted to `electron-modules/awesome-electron`
 - Code of Conduct and Security Policy
 - GitHub Discussions enabled for launch feedback and feature requests
 - GitHub launch discussion posted

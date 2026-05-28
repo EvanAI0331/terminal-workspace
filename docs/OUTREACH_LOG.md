@@ -14,6 +14,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | wflixu/macOS-Apps | https://github.com/wflixu/macOS-Apps/pull/1 | Open | Adds Terminal Workspace to macOS development tools |
 | 2026-05-28 | arran4/awesome-terminal-multiplexers review | https://github.com/arran4/awesome-terminal-multiplexers/pull/11#issuecomment-4562862219 | Addressed | Sorted entry as requested by reviewer |
 | 2026-05-28 | justin-j/awesome-mac-apps | https://github.com/justin-j/awesome-mac-apps/pull/7 | Open | Adds Terminal Workspace to Developer Tools |
+| 2026-05-28 | electron-modules/awesome-electron | https://github.com/electron-modules/awesome-electron/pull/1 | Open | Adds Terminal Workspace to Electron terminal apps in Chinese and English READMEs |
 
 ## Repository Setup
 
@@ -48,6 +49,8 @@ Track concrete distribution work for Terminal Workspace.
 | --- | --- | --- |
 | 2026-05-28 | fmerian/awesome-product-hunt | List is for Product Hunt launches; Terminal Workspace has not launched there yet |
 | 2026-05-28 | guyzyl/awesome-macos-apps | README says it is an opinionated list of tools the maintainer actually uses |
+| 2026-05-28 | tyaga001/devtoolsacademy | Repository is a website/content business, not a public product directory |
+| 2026-05-28 | tyaga001/awesome-developer-tools-marketing | Repository is for marketing resources, not for listing individual dev tools |
 
 ## Ready To Post
 
