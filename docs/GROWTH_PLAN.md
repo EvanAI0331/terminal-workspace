@@ -39,6 +39,7 @@ Completed:
 - External PR submitted to `serhii-londar/open-source-mac-os-apps`
 - External PR submitted to `jaywcjlove/awesome-mac`
 - Code of Conduct and Security Policy
+- GitHub Discussions enabled for launch feedback and feature requests
 
 Still needed:
 

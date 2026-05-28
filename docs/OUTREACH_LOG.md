@@ -11,6 +11,12 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | serhii-londar/open-source-mac-os-apps | https://github.com/serhii-londar/open-source-mac-os-apps/pull/1130 | Open | Adds Terminal Workspace to the macOS open-source apps index |
 | 2026-05-28 | jaywcjlove/awesome-mac | https://github.com/jaywcjlove/awesome-mac/pull/2108 | Open | Adds Terminal Workspace to Terminal Apps |
 
+## Repository Setup
+
+| Date | Action | Status | Notes |
+| --- | --- | --- | --- |
+| 2026-05-28 | GitHub Discussions | Enabled | Use for launch feedback, support questions, and roadmap requests |
+
 ## Current Metrics
 
 | Date | Stars | Notes |
