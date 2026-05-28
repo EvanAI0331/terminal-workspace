@@ -38,11 +38,15 @@ Completed:
 - External PR submitted to `cdleon/awesome-terminals`
 - External PR submitted to `serhii-londar/open-source-mac-os-apps`
 - External PR submitted to `jaywcjlove/awesome-mac`
+- External PR submitted to `arran4/awesome-terminal-multiplexers`
+- External PR submitted to `wflixu/macOS-Apps`
 - Code of Conduct and Security Policy
 - GitHub Discussions enabled for launch feedback and feature requests
 - GitHub launch discussion posted
 - Completed packaged-release issue closed after v0.1.3 verification
 - Follow-up issues opened for notarization and many-terminal performance profiling
+- README screenshot path fixed to use a tracked asset
+- Stale source-first launch copy removed from README and promotion docs
 
 Still needed:
 
@@ -90,7 +94,7 @@ Still needed:
 ### Day 7
 
 - Recap progress.
-- Share v0.1.1 release again with screenshots and roadmap.
+- Share the latest release again with screenshots and roadmap.
 - Convert feedback into issues.
 
 ## Channels

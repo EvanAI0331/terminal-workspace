@@ -71,8 +71,7 @@ It is an Electron desktop app with real PTYs via node-pty and xterm.js. The focu
 
 Inactive terminals are lightweight and do not create xterm/PTY sessions until started.
 
-Source-first for now. Packaged macOS releases are on the roadmap.
-Update: macOS dmg/zip downloads are now available in GitHub Releases.
+macOS dmg/zip downloads are available in GitHub Releases. Current builds are ad-hoc signed and not notarized yet, so macOS may require first-launch approval from Privacy & Security.
 
 Landing page: https://evanai0331.github.io/terminal-workspace/
 GitHub: https://github.com/EvanAI0331/terminal-workspace

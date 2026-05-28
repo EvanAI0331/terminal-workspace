@@ -10,6 +10,8 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | cdleon/awesome-terminals | https://github.com/cdleon/awesome-terminals/pull/75 | Open | Adds Terminal Workspace to macOS terminal tools |
 | 2026-05-28 | serhii-londar/open-source-mac-os-apps | https://github.com/serhii-londar/open-source-mac-os-apps/pull/1130 | Open | Adds Terminal Workspace to the macOS open-source apps index |
 | 2026-05-28 | jaywcjlove/awesome-mac | https://github.com/jaywcjlove/awesome-mac/pull/2108 | Open | Adds Terminal Workspace to Terminal Apps |
+| 2026-05-28 | arran4/awesome-terminal-multiplexers | https://github.com/arran4/awesome-terminal-multiplexers/pull/11 | Open | Adds Terminal Workspace as a multi-terminal utility |
+| 2026-05-28 | wflixu/macOS-Apps | https://github.com/wflixu/macOS-Apps/pull/1 | Open | Adds Terminal Workspace to macOS development tools |
 
 ## Repository Setup
 
@@ -20,6 +22,8 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | Packaged release issue | Closed | v0.1.3 includes macOS dmg and zip assets |
 | 2026-05-28 | Notarization issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/8 |
 | 2026-05-28 | Performance profiling issue | Open | https://github.com/EvanAI0331/terminal-workspace/issues/7 |
+| 2026-05-28 | README screenshot link | Fixed | Changed broken root image path to tracked `site/terminal-workspace-1440.png` |
+| 2026-05-28 | Distribution copy | Fixed | Removed stale source-first and v0.1.1 wording from README and launch docs |
 
 ## Current Metrics
 

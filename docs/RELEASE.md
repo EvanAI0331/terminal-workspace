@@ -1,6 +1,6 @@
 # Release Checklist
 
-Terminal Workspace is currently source-first. Use this checklist before publishing a public GitHub release.
+Terminal Workspace publishes macOS `.dmg` and `.zip` builds through GitHub Releases. Use this checklist before publishing a public release.
 
 ## Release Goals
 
@@ -30,10 +30,13 @@ Prepare:
 
 ## Packaging Targets
 
-Planned:
+Current:
 
 - macOS `.zip`
 - macOS `.dmg`
+
+Planned:
+
 - Signed and notarized builds
 
 Suggested tooling:
@@ -60,6 +63,6 @@ The current packaging flow sets `CSC_IDENTITY_AUTO_DISCOVERY=false`, so release 
 
 ### Known Limits
 
-- Source-first install still requires Node.js, npm, and Xcode Command Line Tools.
+- Source install still requires Node.js, npm, and Xcode Command Line Tools.
 - Packaged releases are not notarized yet.
 ```

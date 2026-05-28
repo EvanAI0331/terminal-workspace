@@ -12,7 +12,7 @@ If your daily workflow involves 10+ terminal windows across several repos, this 
 
 Landing page: https://evanai0331.github.io/terminal-workspace/
 
-![Terminal Workspace running](./terminal-workspace-1440.png)
+![Terminal Workspace running](./site/terminal-workspace-1440.png)
 
 ![Terminal Workspace demo](./docs/assets/terminal-workspace-demo.gif)
 
@@ -218,7 +218,6 @@ When the desktop app restarts, previous terminals are restored as stopped entrie
 
 ## Roadmap
 
-- Packaged macOS `.zip` / `.dmg` releases
 - Signed and notarized builds
 - Command palette
 - Terminal groups and project templates
@@ -251,7 +250,9 @@ Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a pull request.
 
 ## Distribution Status
 
-This repository is currently source-first. Packaged releases are planned. See [docs/RELEASE.md](./docs/RELEASE.md) for the release checklist.
+macOS `.dmg` and `.zip` downloads are available from [GitHub Releases](https://github.com/EvanAI0331/terminal-workspace/releases). Current builds are ad-hoc signed and not notarized yet, so macOS may require approval from **System Settings -> Privacy & Security** on first launch.
+
+See [docs/RELEASE.md](./docs/RELEASE.md) for release checks and signing status.
 
 Growth and sharing assets live in [docs/GROWTH_PLAN.md](./docs/GROWTH_PLAN.md) and [docs/PROMOTION_KIT.md](./docs/PROMOTION_KIT.md).
 
