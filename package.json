@@ -1,7 +1,7 @@
 {
   "name": "terminal-workspace",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -11,6 +11,7 @@
     "postinstall": "npm rebuild node-pty --build-from-source",
     "rebuild:pty": "npm rebuild node-pty --build-from-source",
     "build": "tsc -b && vite build",
+    "pack:mac": "npm run build && CSC_IDENTITY_AUTO_DISCOVERY=false electron-builder --mac zip --arm64",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -18,7 +19,6 @@
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
     "concurrently": "^9.2.1",
-    "electron": "^42.2.0",
     "lucide-react": "^1.16.0",
     "node-pty": "^1.1.0",
     "react": "^19.2.6",
@@ -33,6 +33,8 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "electron": "^42.3.0",
+    "electron-builder": "^26.8.1",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
@@ -42,6 +44,7 @@
     "vite": "^8.0.12"
   },
   "description": "Cross-project multi-terminal workspace for local development stacks.",
+  "author": "EvanAI0331",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -64,5 +67,27 @@
     "multi-terminal",
     "macos",
     "desktop-app"
-  ]
+  ],
+  "build": {
+    "appId": "dev.terminalworkspace.app",
+    "productName": "Terminal Workspace",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "assets/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "assets/TerminalTopology.icns",
+      "target": [
+        "zip"
+      ]
+    },
+    "artifactName": "${productName}-${version}-${arch}.${ext}"
+  }
 }

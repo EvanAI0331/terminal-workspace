@@ -37,7 +37,7 @@ Planned:
 
 Suggested tooling:
 
-- Electron Builder
+- Electron Builder (`npm run pack:mac`)
 - Electron Forge
 
 ## Release Notes Template

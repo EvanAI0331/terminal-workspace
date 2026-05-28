@@ -12,6 +12,8 @@ If your daily workflow involves 10+ terminal windows across several repos, this 
 
 ![Terminal Workspace running](./terminal-workspace-1440.png)
 
+![Terminal Workspace demo](./docs/assets/terminal-workspace-demo.gif)
+
 ## Why Developers Use It
 
 Most terminal apps optimize the shell prompt. Terminal Workspace optimizes the **workspace around many terminals**:
@@ -96,6 +98,12 @@ Run checks:
 ```bash
 npm run lint
 npm run build
+```
+
+Build a local macOS zip package:
+
+```bash
+npm run pack:mac
 ```
 
 ## Daily Workflow
