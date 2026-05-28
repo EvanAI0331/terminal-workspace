@@ -13,6 +13,7 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | arran4/awesome-terminal-multiplexers | https://github.com/arran4/awesome-terminal-multiplexers/pull/11 | Open | Adds Terminal Workspace as a multi-terminal utility |
 | 2026-05-28 | wflixu/macOS-Apps | https://github.com/wflixu/macOS-Apps/pull/1 | Open | Adds Terminal Workspace to macOS development tools |
 | 2026-05-28 | arran4/awesome-terminal-multiplexers review | https://github.com/arran4/awesome-terminal-multiplexers/pull/11#issuecomment-4562862219 | Addressed | Sorted entry as requested by reviewer |
+| 2026-05-28 | justin-j/awesome-mac-apps | https://github.com/justin-j/awesome-mac-apps/pull/7 | Open | Adds Terminal Workspace to Developer Tools |
 
 ## Repository Setup
 
@@ -39,6 +40,14 @@ Track concrete distribution work for Terminal Workspace.
 | 2026-05-28 | 1 | Baseline after publishing release, landing page, and first four outreach PRs |
 | 2026-05-28 | 1 | Release downloads still 0 across dmg/zip assets; external traffic remains the bottleneck |
 | 2026-05-28 | 1 | Release dmg downloads now 1 after Homebrew/download verification; organic traffic still not established |
+| 2026-05-28 | 1 | Release dmg downloads now 2; stars unchanged |
+
+## Skipped Targets
+
+| Date | Target | Reason |
+| --- | --- | --- |
+| 2026-05-28 | fmerian/awesome-product-hunt | List is for Product Hunt launches; Terminal Workspace has not launched there yet |
+| 2026-05-28 | guyzyl/awesome-macos-apps | README says it is an opinionated list of tools the maintainer actually uses |
 
 ## Ready To Post
 

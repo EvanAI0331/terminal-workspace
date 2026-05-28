@@ -44,6 +44,7 @@ Completed:
 - External PR submitted to `jaywcjlove/awesome-mac`
 - External PR submitted to `arran4/awesome-terminal-multiplexers`
 - External PR submitted to `wflixu/macOS-Apps`
+- External PR submitted to `justin-j/awesome-mac-apps`
 - Code of Conduct and Security Policy
 - GitHub Discussions enabled for launch feedback and feature requests
 - GitHub launch discussion posted
