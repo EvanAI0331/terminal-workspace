@@ -362,6 +362,7 @@ function App() {
   const [expandedProbeProjectIds, setExpandedProbeProjectIds] = useState<string[]>([])
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null)
   const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null)
+  const [dragOverProjectId, setDragOverProjectId] = useState<string | null>(null)
   const [projectDraft, setProjectDraft] = useState({ name: '', path: defaultPath })
   const [sidebarPanel, setSidebarPanel] = useState('terminals')
   const [detailTab, setDetailTab] = useState<'details' | 'settings'>('details')
@@ -1148,17 +1149,19 @@ function App() {
               return (
                 <div
                   key={project.id}
-                  className={`projectGroup ${draggedProjectId === project.id ? 'dragging' : ''}`}
+                  className={`projectGroup ${draggedProjectId === project.id ? 'dragging' : ''} ${dragOverProjectId === project.id ? 'dropTarget' : ''}`}
                   onDragOver={(event) => {
                     if (!draggedProjectId || draggedProjectId === project.id) return
                     event.preventDefault()
                     event.dataTransfer.dropEffect = 'move'
+                    setDragOverProjectId(project.id)
                   }}
                   onDrop={(event) => {
                     event.preventDefault()
                     const draggedId = event.dataTransfer.getData('text/plain') || draggedProjectId
                     if (draggedId) moveProject(draggedId, project.id)
                     setDraggedProjectId(null)
+                    setDragOverProjectId(null)
                   }}
                 >
                   <button
@@ -1196,12 +1199,24 @@ function App() {
                       onDragStart={(event) => {
                         event.stopPropagation()
                         setDraggedProjectId(project.id)
+                        setDragOverProjectId(null)
                         event.dataTransfer.effectAllowed = 'move'
                         event.dataTransfer.setData('text/plain', project.id)
+                        const projectRoot = event.currentTarget.closest('.projectRoot')
+                        if (projectRoot instanceof HTMLElement) {
+                          const rect = projectRoot.getBoundingClientRect()
+                          const dragPreview = projectRoot.cloneNode(true) as HTMLElement
+                          dragPreview.classList.add('projectDragPreview')
+                          dragPreview.style.width = `${rect.width}px`
+                          document.body.appendChild(dragPreview)
+                          event.dataTransfer.setDragImage(dragPreview, rect.width - 18, rect.height / 2)
+                          window.setTimeout(() => dragPreview.remove(), 0)
+                        }
                       }}
                       onDragEnd={(event) => {
                         event.stopPropagation()
                         setDraggedProjectId(null)
+                        setDragOverProjectId(null)
                       }}
                     >
                       <GripVertical size={15} />

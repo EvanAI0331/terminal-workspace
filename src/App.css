@@ -143,6 +143,13 @@
   opacity: 0.56;
 }
 
+.projectGroup.dropTarget > .projectRoot {
+  background: linear-gradient(90deg, rgba(20, 122, 255, 0.42), rgba(38, 153, 255, 0.18));
+  box-shadow:
+    inset 0 0 0 1px rgba(126, 208, 255, 0.62),
+    0 0 18px rgba(35, 139, 255, 0.28);
+}
+
 .projectGroup + .projectGroup {
   margin-top: 2px;
 }
@@ -237,6 +244,29 @@ input {
 
 .projectDragHandle:hover {
   color: #8dccff;
+}
+
+.projectDragPreview {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  z-index: 9999;
+  pointer-events: none;
+  display: grid !important;
+  grid-template-columns: 14px 20px minmax(0, 1fr) 16px 16px !important;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  border-radius: 4px;
+  padding: 0 8px;
+  background: linear-gradient(90deg, rgba(17, 106, 214, 0.96), rgba(20, 94, 180, 0.82));
+  color: #fff;
+  font: 700 13px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow:
+    inset 2px 0 0 #7ed0ff,
+    0 0 0 1px rgba(96, 181, 255, 0.5),
+    0 10px 28px rgba(0, 0, 0, 0.32),
+    0 0 24px rgba(35, 139, 255, 0.36);
 }
 
 .projectDelete:hover {
