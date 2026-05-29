@@ -5,7 +5,8 @@ const pty = require("node-pty");
 const yaml = require("yaml");
 const toml = require("smol-toml");
 
-const isDev = !app.isPackaged;
+const shouldLoadBuiltApp = process.env.TERMINAL_WORKSPACE_LOAD_DIST === "1";
+const isDev = !app.isPackaged && !shouldLoadBuiltApp;
 const sessions = new Map();
 const sensitiveEnvPattern = /(key|token|secret|password|passwd|pwd|credential|auth|private)/i;
 const appIconPath = path.join(__dirname, "../assets/TerminalTopology.icns");

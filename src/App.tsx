@@ -11,6 +11,7 @@ import {
   Folder,
   FolderOpen,
   Grid3X3,
+  GripVertical,
   List,
   PanelRight,
   Play,
@@ -207,12 +208,9 @@ const commandBelongsToTerminal = (
   return isPathWithinRoot(targetPath, root)
 }
 
-const visibleLaunchCommand = (
-  terminal: TerminalModel,
-  projectPath: string | undefined,
-) => {
+const visibleLaunchCommand = (terminal: TerminalModel) => {
   const command = normalizeStoredCommand(terminal.lastCommand || terminal.command)
-  return commandBelongsToTerminal(terminal, command, projectPath) ? command : ''
+  return command
 }
 
 const updateInputState = (
@@ -311,6 +309,8 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
           pid: undefined,
           exitCode: shouldRestore ? null : terminal.exitCode,
           restoreOnSelect: false,
+          transcript: undefined,
+          inputBuffer: '',
           eventLog:
             shouldRestore
               ? [event('Previous process ended when the app quit. Click Start Terminal to create a new PTY.'), ...(terminal.eventLog ?? [])].slice(0, 12)
@@ -321,45 +321,22 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
   ) as Record<string, TerminalModel>
 }
 
-const sanitizeTerminalCommands = (
-  current: Record<string, TerminalModel>,
-  projects: Project[],
-) => {
-  const projectPaths = new Map(projects.map((project) => [project.id, project.path]))
-  let changed = false
-  const next = Object.fromEntries(
-    Object.entries(current).map(([id, terminal]) => {
-      const projectPath = projectPaths.get(terminal.projectId)
-      if (commandBelongsToTerminal(terminal, terminal.lastCommand || terminal.command, projectPath)) {
-        return [id, terminal]
-      }
-      changed = true
-      return [
-        id,
-        {
-          ...terminal,
-          command: '',
-          lastCommand: undefined,
-          inputBuffer: '',
-        },
-      ]
-    }),
-  ) as Record<string, TerminalModel>
-  return changed ? next : current
-}
-
-const compactTerminalsForSave = (current: Record<string, TerminalModel>, projects: Project[]) =>
+const compactTerminalsForSave = (current: Record<string, TerminalModel>) =>
   Object.fromEntries(
-    Object.entries(sanitizeTerminalCommands(current, projects))
+    Object.entries(current)
       .filter(([, terminal]) => Boolean(terminal.projectId))
       .map(([id, terminal]) => {
         const persistedTerminal = { ...terminal }
+        const normalizedCommand = normalizeStoredCommand(terminal.command)
+        const normalizedLastCommand = normalizeStoredCommand(terminal.lastCommand)
         delete persistedTerminal.transcript
         delete persistedTerminal.restoreOnSelect
         return [
           id,
           {
             ...persistedTerminal,
+            command: normalizedCommand,
+            lastCommand: normalizedLastCommand || undefined,
             eventLog: terminal.eventLog.slice(0, 12),
             inputBuffer: '',
           },
@@ -384,7 +361,7 @@ function App() {
   const [expandedProjectIds, setExpandedProjectIds] = useState<string[]>(['project_current'])
   const [expandedProbeProjectIds, setExpandedProbeProjectIds] = useState<string[]>([])
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(null)
-  const [, setClock] = useState(0)
+  const [draggedProjectId, setDraggedProjectId] = useState<string | null>(null)
   const [projectDraft, setProjectDraft] = useState({ name: '', path: defaultPath })
   const [sidebarPanel, setSidebarPanel] = useState('terminals')
   const [detailTab, setDetailTab] = useState<'details' | 'settings'>('details')
@@ -419,7 +396,7 @@ function App() {
     () => ({
       version: 1,
       projects,
-      terminals: compactTerminalsForSave(terminals, projects),
+      terminals: compactTerminalsForSave(terminals),
       activeProjectId,
       activeTerminalId,
       expandedProjectIds,
@@ -470,13 +447,7 @@ function App() {
           return
         }
         const loadedTerminals = normalizeLoadedTerminals(state.terminals ?? {}, state.projects)
-        setTerminalTranscripts(
-          Object.fromEntries(
-            Object.entries(loadedTerminals)
-              .filter(([, terminal]) => Boolean(terminal.transcript))
-              .map(([id, terminal]) => [id, terminal.transcript ?? '']),
-          ),
-        )
+        setTerminalTranscripts({})
         setProjects(state.projects)
         setTerminals(loadedTerminals)
         setActiveProjectId(state.activeProjectId)
@@ -595,11 +566,6 @@ function App() {
     }
   }, [])
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setClock((value) => value + 1), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
-
   const runProjectInspection = useCallback(async (project: Project) => {
     const scanPath = project.path
     setActiveProjectId(project.id)
@@ -705,29 +671,11 @@ function App() {
       return
     }
 
-    try {
-      const runtime = await window.terminalHost.create({ id, cwd, cols: 110, rows: 30, userInitiated: true })
-      attachTerminal({
-        ...terminal,
-        status: 'running',
-        busy: false,
-        pid: runtime.pid,
-        shell: runtime.shell,
-        cwd: runtime.cwd,
-        createdAt: runtime.createdAt,
-        eventLog: [event(`Started real PTY, PID ${runtime.pid}`)],
-      })
-      setNotice(`Added terminal: ${name}`)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      attachTerminal({
-        ...terminal,
-        status: 'failed',
-        busy: false,
-        eventLog: [event(`Start failed: ${message}`)],
-      })
-      setNotice(`Terminal start failed: ${message}`)
-    }
+    attachTerminal({
+      ...terminal,
+      eventLog: [event('Terminal placeholder created. Click Start Terminal to create a PTY.')],
+    })
+    setNotice(`Added idle terminal: ${name}`)
   }
 
   const stopTerminal = async (id: string) => {
@@ -813,8 +761,7 @@ function App() {
       setNotice('Electron runtime is not connected. Cannot rerun command.')
       return
     }
-    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
-    const command = visibleLaunchCommand(terminal, projectPath)
+    const command = visibleLaunchCommand(terminal)
     if (!command) {
       setNotice('This terminal has no previous command to rerun.')
       return
@@ -959,7 +906,7 @@ function App() {
     setSidebarPanel('terminals')
     saveStateImmediately({
       projects: nextProjects,
-      terminals: compactTerminalsForSave(nextTerminals, nextProjects),
+      terminals: compactTerminalsForSave(nextTerminals),
       activeProjectId: nextActiveProject.id,
       activeTerminalId: nextActiveProject.terminalIds[0] ?? null,
       expandedProjectIds: expandedProjectIds.filter((projectId) =>
@@ -969,6 +916,19 @@ function App() {
       sidebarPanel: 'terminals',
     })
     setNotice(`Deleted project: ${project.name}`)
+  }
+
+  const moveProject = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return
+    const fromIndex = projects.findIndex((project) => project.id === draggedId)
+    const toIndex = projects.findIndex((project) => project.id === targetId)
+    if (fromIndex < 0 || toIndex < 0) return
+    const nextProjects = [...projects]
+    const [movedProject] = nextProjects.splice(fromIndex, 1)
+    nextProjects.splice(toIndex, 0, movedProject)
+    setProjects(nextProjects)
+    saveStateImmediately({ projects: nextProjects })
+    setNotice(`Moved project: ${movedProject.name}`)
   }
 
   const selectProject = (project: Project) => {
@@ -993,8 +953,7 @@ function App() {
   }
 
   const copyLaunchCommand = async (terminal: TerminalModel) => {
-    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
-    const command = visibleLaunchCommand(terminal, projectPath)
+    const command = visibleLaunchCommand(terminal)
     if (!command) {
       setNotice('No launch command is available for this terminal.')
       return
@@ -1020,28 +979,28 @@ function App() {
   }
 
   const saveLaunchCommand = (terminal: TerminalModel, command: string) => {
-    const projectPath = projects.find((project) => project.id === terminal.projectId)?.path
     const normalizedCommand = normalizeStoredCommand(command)
-    if (normalizedCommand && !commandBelongsToTerminal(terminal, normalizedCommand, projectPath)) {
-      setNotice('Launch command must belong to this terminal project path.')
+    const currentTerminal = terminals[terminal.id]
+    if (!currentTerminal) {
+      setNotice('Terminal no longer exists.')
       return false
     }
-    setTerminals((current) => {
-      const currentTerminal = current[terminal.id]
-      if (!currentTerminal) return current
-      return {
-        ...current,
-        [terminal.id]: {
-          ...currentTerminal,
-          command: normalizedCommand,
-          lastCommand: normalizedCommand || undefined,
-          inputBuffer: '',
-          eventLog: [
-            event(normalizedCommand ? 'Launch command saved.' : 'Launch command cleared.'),
-            ...(currentTerminal.eventLog ?? []),
-          ].slice(0, 12),
-        },
-      }
+    const nextTerminals = {
+      ...terminals,
+      [terminal.id]: {
+        ...currentTerminal,
+        command: normalizedCommand,
+        lastCommand: normalizedCommand || undefined,
+        inputBuffer: '',
+        eventLog: [
+          event(normalizedCommand ? 'Launch command saved.' : 'Launch command cleared.'),
+          ...(currentTerminal.eventLog ?? []),
+        ].slice(0, 12),
+      },
+    }
+    setTerminals(nextTerminals)
+    saveStateImmediately({
+      terminals: compactTerminalsForSave(nextTerminals),
     })
     setNotice(normalizedCommand ? `Launch command saved for ${terminal.name}.` : `Launch command cleared for ${terminal.name}.`)
     return true
@@ -1187,7 +1146,21 @@ function App() {
                 .map((id) => terminals[id])
                 .filter((terminal): terminal is TerminalModel => Boolean(terminal))
               return (
-                <div key={project.id} className="projectGroup">
+                <div
+                  key={project.id}
+                  className={`projectGroup ${draggedProjectId === project.id ? 'dragging' : ''}`}
+                  onDragOver={(event) => {
+                    if (!draggedProjectId || draggedProjectId === project.id) return
+                    event.preventDefault()
+                    event.dataTransfer.dropEffect = 'move'
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault()
+                    const draggedId = event.dataTransfer.getData('text/plain') || draggedProjectId
+                    if (draggedId) moveProject(draggedId, project.id)
+                    setDraggedProjectId(null)
+                  }}
+                >
                   <button
                     type="button"
                     className={`projectRoot ${isActiveProject ? 'selected' : ''}`}
@@ -1213,6 +1186,26 @@ function App() {
                     </span>
                     <FolderOpen size={19} />
                     <span>{project.name}</span>
+                    <span
+                      className="projectDragHandle"
+                      role="button"
+                      tabIndex={0}
+                      draggable
+                      aria-label={`Move project ${project.name}`}
+                      onClick={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        event.stopPropagation()
+                        setDraggedProjectId(project.id)
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', project.id)
+                      }}
+                      onDragEnd={(event) => {
+                        event.stopPropagation()
+                        setDraggedProjectId(null)
+                      }}
+                    >
+                      <GripVertical size={15} />
+                    </span>
                     <span
                       className="projectDelete"
                       role="button"
@@ -1428,7 +1421,6 @@ function App() {
                 <LaunchCommandEditor
                   key={`${activeTerminal.id}-${activeProject.path}`}
                   terminal={activeTerminal}
-                  projectPath={activeProject.path}
                   onSave={saveLaunchCommand}
                   onCopy={copyLaunchCommand}
                 />
@@ -1440,7 +1432,7 @@ function App() {
               <button
                 type="button"
                 className="showAll"
-                disabled={!visibleLaunchCommand(activeTerminal, activeProject.path)}
+                disabled={!visibleLaunchCommand(activeTerminal)}
                 onClick={() => rerunTerminal(activeTerminal)}
               >
                 Rerun Last Command
@@ -1495,24 +1487,37 @@ function App() {
 
 function LaunchCommandEditor({
   terminal,
-  projectPath,
   onSave,
   onCopy,
 }: {
   terminal: TerminalModel
-  projectPath: string
   onSave: (terminal: TerminalModel, command: string) => boolean
   onCopy: (terminal: TerminalModel) => void
 }) {
   const storedCommand = normalizeStoredCommand(terminal.lastCommand || terminal.command)
-  const savedCommand = commandBelongsToTerminal(terminal, storedCommand, projectPath) ? storedCommand : ''
-  const [draft, setDraft] = useState(savedCommand)
+  const savedCommand = storedCommand
+  const [draftState, setDraftState] = useState({
+    terminalId: terminal.id,
+    savedCommand,
+    value: savedCommand,
+  })
+  const draft =
+    draftState.terminalId === terminal.id && draftState.savedCommand === savedCommand
+      ? draftState.value
+      : savedCommand
   const hasSavedCommand = Boolean(savedCommand)
-  const hasChanges = normalizeStoredCommand(draft) !== storedCommand
+  const hasChanges = normalizeStoredCommand(draft) !== savedCommand
 
   const saveDraft = () => {
     const saved = onSave(terminal, draft)
-    if (saved) setDraft(normalizeStoredCommand(draft))
+    if (saved) {
+      const normalizedDraft = normalizeStoredCommand(draft)
+      setDraftState({
+        terminalId: terminal.id,
+        savedCommand: normalizedDraft,
+        value: normalizedDraft,
+      })
+    }
   }
 
   return (
@@ -1521,7 +1526,13 @@ function LaunchCommandEditor({
         value={draft}
         aria-label="Launch command"
         placeholder="Enter launch command..."
-        onChange={(change) => setDraft(change.target.value)}
+        onChange={(change) =>
+          setDraftState({
+            terminalId: terminal.id,
+            savedCommand,
+            value: change.target.value,
+          })
+        }
       />
       <div className="launchCommandActions">
         <button

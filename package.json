@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "dev:web": "vite --host 127.0.0.1",
-    "desktop": "npm run build && electron .",
+    "desktop": "npm run build && TERMINAL_WORKSPACE_LOAD_DIST=1 electron .",
     "postinstall": "npm rebuild node-pty --build-from-source",
     "rebuild:pty": "npm rebuild node-pty --build-from-source",
     "build": "tsc -b && vite build",
