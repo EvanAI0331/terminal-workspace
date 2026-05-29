@@ -298,10 +298,12 @@ const normalizeLoadedTerminals = (loaded: Record<string, TerminalModel>, project
         terminal.lastCommand || terminal.command,
         projectPath,
       )
+      const shouldUseProjectPath = terminal.status !== 'running' && Boolean(projectPath)
       return [
         id,
         {
           ...terminal,
+          cwd: shouldUseProjectPath ? projectPath : terminal.cwd,
           command: commandIsValid ? terminal.command : '',
           lastCommand: commandIsValid ? terminal.lastCommand : undefined,
           status: shouldRestore ? 'exited' : terminal.status,
@@ -387,8 +389,9 @@ function App() {
         .filter((terminal): terminal is TerminalModel => Boolean(terminal)),
     [activeProject.terminalIds, terminals],
   )
+  const selectedTerminal = activeTerminalId ? terminals[activeTerminalId] : undefined
   const activeTerminal =
-    (activeTerminalId ? terminals[activeTerminalId] : undefined) ?? activeTerminals[0]
+    selectedTerminal?.projectId === activeProject.id ? selectedTerminal : activeTerminals[0]
   const recentTerminals = Object.values(terminals)
     .filter((terminal) => terminal.projectId === activeProject.id)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
@@ -927,8 +930,17 @@ function App() {
     const nextProjects = [...projects]
     const [movedProject] = nextProjects.splice(fromIndex, 1)
     nextProjects.splice(toIndex, 0, movedProject)
+    const nextActiveTerminalId = movedProject.terminalIds[0] ?? null
     setProjects(nextProjects)
-    saveStateImmediately({ projects: nextProjects })
+    setActiveProjectId(movedProject.id)
+    setActiveTerminalId(nextActiveTerminalId)
+    setExpandedProjectIds((current) => [...new Set([...current, movedProject.id])])
+    saveStateImmediately({
+      projects: nextProjects,
+      activeProjectId: movedProject.id,
+      activeTerminalId: nextActiveTerminalId,
+      expandedProjectIds: [...new Set([...expandedProjectIds, movedProject.id])],
+    })
     setNotice(`Moved project: ${movedProject.name}`)
   }
 
@@ -1442,7 +1454,7 @@ function App() {
               </div>
               <dl className="detailTable">
                 <div><dt>Shell</dt><dd>{activeTerminal.shell || '-'}</dd></div>
-                <div><dt>Directory</dt><dd>{activeTerminal.cwd}</dd></div>
+                <div><dt>Directory</dt><dd>{activeProject.path || activeTerminal.cwd}</dd></div>
               </dl>
               <button
                 type="button"
@@ -1483,7 +1495,7 @@ function App() {
                     </dd>
                   </div>
                   <div><dt>Shell</dt><dd>{activeTerminal.shell || 'Not started'}</dd></div>
-                  <div><dt>Directory</dt><dd>{activeTerminal.cwd || '-'}</dd></div>
+                  <div><dt>Directory</dt><dd>{activeProject.path || activeTerminal.cwd || '-'}</dd></div>
                 </dl>
                 <button type="button" className="showAll" onClick={() => stopTerminal(activeTerminal.id)} disabled={activeTerminal.status !== 'running'}>Stop Process</button>
               </section>
